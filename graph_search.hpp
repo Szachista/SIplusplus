@@ -19,10 +19,6 @@ void breadth_first_search(const graph_state &initial,
 						  std::function<bool(std::unique_ptr<graph_state>&)> callback,
 						  bool print_stats = true);
 
-//std::vector<std::unique_ptr<graph_state>> informative_search(const graph_state &initial, std::function<bool(const graph_state&, const graph_state&)> comp, bool print_stats = true);
-
-//void informative_search(const graph_state &initial, std::function<bool(const graph_state&, const graph_state&)> comp, std::function<bool(const std::unique_ptr<graph_state>&)> callback, bool print_stats = true);
-
 std::string parse_time(int64_t ms);
 
 class informative_searcher
