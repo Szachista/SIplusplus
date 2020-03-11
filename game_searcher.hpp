@@ -133,26 +133,26 @@ private:
 			}
 		}
 
-		double val;
-		if (state->is_terminal(&val))
+		auto val = state->is_terminal();
+		if (val)
 		{
 			if constexpr (use_tt)
 				transposition_table.emplace(tt_entry<Move>(std::move(state),
-														   val,
+														   val.value(),
 														   d,
 														   tt_type::exact_value));
-			return val;
+			return val.value();
 		}
 
 		if (d == max_ply)
 		{
-			val = state->get_h();
+			double score = state->get_h();
 			if constexpr (use_tt)
 				transposition_table.emplace(tt_entry<Move>(std::move(state),
-														   val,
+														   score,
 														   d,
 														   tt_type::exact_value));
-			return val;
+			return score;
 		}
 
 		for (const auto &m : state->generate_moves())
@@ -160,10 +160,10 @@ private:
 			auto s = state->make_move(m);
 			if (!s)
 				continue;
-			val = alpha_beta_min(std::move(s), d + 1, alpha, beta);
+			double score = alpha_beta_min(std::move(s), d + 1, alpha, beta);
 			if (d == 0)
-				scores.emplace_back(std::make_pair(m, val));
-			alpha = std::max(alpha, val);
+				scores.emplace_back(std::make_pair(m, score));
+			alpha = std::max(alpha, score);
 			if (alpha >= beta)
 			{
 				if constexpr (use_tt)
@@ -213,26 +213,26 @@ private:
 			}
 		}
 
-		double val;
-		if (state->is_terminal(&val))
+		auto val = state->is_terminal();
+		if (val)
 		{
 			if constexpr (use_tt)
 				transposition_table.emplace(tt_entry<Move>(std::move(state),
-														   val,
+														   val.value(),
 														   d,
 														   tt_type::exact_value));
-			return val;
+			return val.value();
 		}
 
 		if (d == max_ply)
 		{
-			val = state->get_h();
+			double score = state->get_h();
 			if constexpr (use_tt)
 				transposition_table.emplace(tt_entry<Move>(std::move(state),
-														   val,
+														   score,
 														   d,
 														   tt_type::exact_value));
-			return val;
+			return score;
 		}
 
 		for (const auto &m : state->generate_moves())
@@ -240,10 +240,10 @@ private:
 			auto s = state->make_move(m);
 			if (!s)
 				continue;
-			val = alpha_beta_max(std::move(s), d + 1, alpha, beta);
+			double score = alpha_beta_max(std::move(s), d + 1, alpha, beta);
 			if (d == 0)
-				scores.emplace_back(std::make_pair(m, val));
-			beta = std::min(beta, val);
+				scores.emplace_back(std::make_pair(m, score));
+			beta = std::min(beta, score);
 			if (alpha >= beta)
 			{
 				if constexpr (use_tt)

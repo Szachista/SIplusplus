@@ -4,6 +4,7 @@
 #include <vector>
 #include <memory>
 #include <string>
+#include <optional>
 
 template<typename Move>
 class game_state
@@ -62,7 +63,7 @@ public:
 	 * player won, -inf when the second player won, 0 when there is draw).
 	 * @return true for terminal state, false otherwise.
 	 */
-	virtual bool is_terminal(double *val) const = 0;
+	virtual std::optional<double> is_terminal() const = 0;
 
 	bool operator== (const game_state &s) const
 	{
