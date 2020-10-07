@@ -3,10 +3,8 @@
 
 graph_state::graph_state()
 	: parent {nullptr},
-//	  score {std::nan(""), parent == nullptr ? 0 : std::get<1>(parent->score) + cost, std::nan("")}
 	  fscore(std::nan("")),
 	  gscore(0),
-//	  gscore(parent == nullptr ? 0 : parent->gscore + cost),
 	  hscore(std::nan(""))
 {
 }
@@ -22,8 +20,6 @@ bool graph_state::operator== (const graph_state &s) const
 
 double graph_state::get_f() const
 {
-//	if (std::isnan(fscore))
-//		const_cast<double&>(fscore) = gscore + get_h();
 	return fscore;
 }
 
@@ -34,8 +30,6 @@ double graph_state::get_g() const
 
 double graph_state::get_h() const
 {
-//	if (std::isnan(hscore))
-//		const_cast<double&>(hscore) = get_heuristic_grade();
 	return hscore;
 }
 
@@ -55,11 +49,6 @@ void graph_state::set_parent(const graph_state *parent)
 {
 	this->parent = parent;
 }
-
-//std::string state::to_graphviz() const
-//{
-//	return "";
-//}
 
 double graph_state::get_heuristic_grade() const
 {
