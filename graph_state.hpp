@@ -23,7 +23,7 @@ public:
 	 * @brief Method calculates hash of the current object.
 	 * @return Number representing hash.
 	 */
-	virtual size_t hash_code() const = 0;
+	virtual std::size_t hash_code() const = 0;
 
 	/**
 	 * @brief get_successors

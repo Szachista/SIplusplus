@@ -10,13 +10,9 @@ template<typename Move>
 class game_state
 {
 public:
-	game_state()
-	{
-	}
+	game_state() = default;
 
-	virtual ~game_state()
-	{
-	}
+	virtual ~game_state() = default;
 
 	/**
 	 * @brief Method creates copy of the current object.
