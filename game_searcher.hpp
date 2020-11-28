@@ -80,6 +80,7 @@ public:
 	{
 		scores.clear();
 		transposition_table.clear();
+		num_visited = 0;
 		if (maximize)
 			alpha_beta_max(state.clone());
 		else
@@ -96,23 +97,30 @@ public:
 		return transposition_table;
 	}
 
+	std::size_t get_number_of_visited_states() const
+	{
+		return num_visited;
+	}
+
 private:
 	const unsigned max_ply;
 	const bool maximize;
 	std::vector<std::pair<Move, double>> scores;
 	std::unordered_set<tt_entry<Move>> transposition_table;
-	static tt_entry<Move> dummy_entry;
+	tt_entry<Move> dummy_entry;
+	std::size_t num_visited;
 
 	double alpha_beta_max(std::unique_ptr<game_state<Move>> &&state,
 						  unsigned d = 0,
 						  double alpha = -std::numeric_limits<double>::infinity(),
 						  double beta = std::numeric_limits<double>::infinity())
 	{
+		num_visited++;
 		if constexpr (use_tt)
 		{
-			alpha_beta_searcher::dummy_entry.state = std::move(state);
+			dummy_entry.state = std::move(state);
 			auto hash_hits = transposition_table.find(alpha_beta_searcher::dummy_entry);
-			state = std::move(alpha_beta_searcher::dummy_entry.state);
+			state = std::move(dummy_entry.state);
 			if (hash_hits != transposition_table.end() && hash_hits->depth >= d)
 			{
 				switch (hash_hits->type)
@@ -160,9 +168,19 @@ private:
 			auto s = state->make_move(m);
 			if (!s)
 				continue;
-			double score = alpha_beta_min(std::move(s), d + 1, alpha, beta);
+
+			double score;
 			if (d == 0)
+			{	// to acquire exact score of the move
+				score = alpha_beta_min(std::move(s),
+									   d + 1,
+									   -std::numeric_limits<double>::infinity(),
+									   std::numeric_limits<double>::infinity());
 				scores.emplace_back(std::make_pair(m, score));
+			}
+			else
+				score = alpha_beta_min(std::move(s), d + 1, alpha, beta);
+
 			alpha = std::max(alpha, score);
 			if (alpha >= beta)
 			{
@@ -180,6 +198,7 @@ private:
 													   alpha,
 													   d,
 													   tt_type::exact_value));
+
 		return alpha;
 	}
 
@@ -188,11 +207,12 @@ private:
 						  double alpha = -std::numeric_limits<double>::infinity(),
 						  double beta = std::numeric_limits<double>::infinity())
 	{
+		num_visited++;
 		if constexpr (use_tt)
 		{
-			alpha_beta_searcher::dummy_entry.state = std::move(state);
+			dummy_entry.state = std::move(state);
 			auto hash_hits = transposition_table.find(alpha_beta_searcher::dummy_entry);
-			state = std::move(alpha_beta_searcher::dummy_entry.state);
+			state = std::move(dummy_entry.state);
 			if (hash_hits != transposition_table.end() && hash_hits->depth >= d)
 			{
 				switch (hash_hits->type)
@@ -240,9 +260,19 @@ private:
 			auto s = state->make_move(m);
 			if (!s)
 				continue;
-			double score = alpha_beta_max(std::move(s), d + 1, alpha, beta);
+
+			double score;
 			if (d == 0)
+			{	// to acquire exact score of the move
+				score = alpha_beta_max(std::move(s),
+									   d + 1,
+									   -std::numeric_limits<double>::infinity(),
+									   std::numeric_limits<double>::infinity());
 				scores.emplace_back(std::make_pair(m, score));
+			}
+			else
+				score = alpha_beta_max(std::move(s), d + 1, alpha, beta);
+
 			beta = std::min(beta, score);
 			if (alpha >= beta)
 			{
@@ -260,11 +290,9 @@ private:
 													   beta,
 													   d,
 													   tt_type::exact_value));
+
 		return beta;
 	}
 };
-
-template<typename Move, bool use_tt>
-tt_entry<Move> alpha_beta_searcher<Move, use_tt>::dummy_entry;
 
 #endif

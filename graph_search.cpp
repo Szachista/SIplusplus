@@ -8,7 +8,7 @@ std::string parse_time(int64_t ms)
 {
 	if (ms < 0)
 		throw std::runtime_error("Negative measure!");
-	char format[16] = {0};
+	char format[32] = {0};
 	sprintf(format,
 			"%02d:%02d:%02d.%03d",
 			static_cast<int>(ms / 3600000),
@@ -23,7 +23,7 @@ bool depth_first_search(const graph_state &s,
 {
 	if (s.is_solution())
 		return true;
-	for (auto &t : s.get_successors())
+	for (auto &&t : s.get_successors())
 		if (depth_first_search(*t, callback) && !callback(std::move(t)))
 			break;
 	return false;
@@ -71,7 +71,7 @@ std::vector<std::unique_ptr<graph_state>> breadth_first_search(const graph_state
 			break;
 		}
 
-		for (auto &t : s->get_successors())
+		for (auto &&t : s->get_successors())
 			if (closed.find(t) == closed.end() && open_copy.find(t.get()) == open_copy.end())
 			{
 				open_copy.emplace(t.get());
@@ -83,7 +83,8 @@ std::vector<std::unique_ptr<graph_state>> breadth_first_search(const graph_state
 }
 
 void breadth_first_search(const graph_state &initial,
-						  std::function<bool(std::unique_ptr<graph_state>&)> callback, bool print_stats)
+						  std::function<bool(std::unique_ptr<graph_state>&)> callback,
+						  bool print_stats)
 {
 	std::unordered_set<std::unique_ptr<graph_state>> closed;
 	std::unordered_set<graph_state*> open_copy;
@@ -108,7 +109,7 @@ void breadth_first_search(const graph_state &initial,
 				break;
 		}
 
-		for (auto &t : s->get_successors())
+		for (auto &&t : s->get_successors())
 			if (closed.find(t) == closed.end() && open_copy.find(t.get()) == open_copy.end())
 			{
 				open_copy.emplace(t.get());
@@ -127,7 +128,7 @@ void breadth_first_search(const graph_state &initial,
 
 informative_searcher::informative_searcher(const graph_state &initial,
 										   std::function<bool(const graph_state &, const graph_state &)> comp,
-										   size_t max_solutions)
+										   std::size_t max_solutions)
 	: open {comp}
 {
 	start_time = std::chrono::high_resolution_clock::now();
@@ -153,7 +154,7 @@ informative_searcher::informative_searcher(const graph_state &initial,
 				continue;
 		}
 
-		for (auto &t : s->get_successors())
+		for (auto &&t : s->get_successors())
 			if (closed.find(t) == closed.end())
 				open.push(std::move(t));
 

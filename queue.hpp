@@ -23,7 +23,7 @@ public:
 		return data.empty();
 	}
 
-	size_t size() const
+	std::size_t size() const
 	{
 		return data.size();
 	}
@@ -37,7 +37,7 @@ public:
 	{
 		std::ostringstream str;
 		str << "Queue's content:\n";
-		for (size_t i = 0; i < data.size(); i++)
+		for (std::size_t i = 0; i < data.size(); i++)
 			str << i << ":\n" << *data[i] << ", ";
 		return str.str();
 	}
@@ -99,7 +99,7 @@ private:
 	std::unordered_map<T*, uint32_t> value_to_idx;
 	Compare comp;
 
-	void swim(size_t idx)
+	void swim(std::size_t idx)
 	{
 		while (idx != 0 && comp(*data[idx], *data[(idx - 1) >> 1]))
 		{
@@ -110,9 +110,9 @@ private:
 		value_to_idx[data[idx].get()] = idx;
 	}
 
-	void sink(size_t idx)
+	void sink(std::size_t idx)
 	{
-		size_t ind;
+		std::size_t ind;
 		while ((ind = 2 * idx + 1) < data.size())
 		{
 			if (ind + 1 < data.size() && comp(*data[ind + 1], *data[ind]))
@@ -129,7 +129,7 @@ private:
 
 	bool is_consistent() const
 	{
-		for (size_t i = 0; i < data.size(); i++)
+		for (std::size_t i = 0; i < data.size(); i++)
 		{
 			auto res = value_to_idx.find(data[i].get());
 			if (i != res->second)
@@ -140,9 +140,9 @@ private:
 
 	bool is_heap() const
 	{
-		for (size_t i = 0; i < data.size(); i++)
+		for (std::size_t i = 0; i < data.size(); i++)
 		{
-			size_t left = 2 * i + 1, right = 2 * i + 2;
+			std::size_t left = 2 * i + 1, right = 2 * i + 2;
 			if (left < data.size() && !(comp(*data[i], *data[left]) || !comp(*data[left], *data[i])))
 				return false;
 			if (right < data.size() && !(comp(*data[i], *data[right]) || !comp(*data[right], *data[i])))
@@ -165,7 +165,7 @@ public:
 		return data.empty();
 	}
 
-	size_t size() const
+	std::size_t size() const
 	{
 		return data.size();
 	}
@@ -179,7 +179,7 @@ public:
 	{
 		std::ostringstream str;
 		str << "Queue's content:\n";
-		for (size_t i = 0; i < data.size(); i++)
+		for (std::size_t i = 0; i < data.size(); i++)
 			str << i << ":\n" << *data[i].first << ", ";
 		return str.str();
 	}
@@ -242,7 +242,7 @@ private:
 	Compare comp;
 	uint32_t cnt;
 
-	void swim(size_t idx)
+	void swim(std::size_t idx)
 	{
 		while (idx != 0 && (comp(*data[idx].first, *data[(idx - 1) >> 1].first) || (!comp(*data[idx].first, *data[(idx - 1) >> 1].first) && data[idx].second < data[(idx - 1) >> 1].second)))
 		{
@@ -253,9 +253,9 @@ private:
 		value_to_idx[data[idx].first.get()] = idx;
 	}
 
-	void sink(size_t idx)
+	void sink(std::size_t idx)
 	{
-		size_t ind;
+		std::size_t ind;
 		while ((ind = 2 * idx + 1) < data.size())
 		{
 			if (ind + 1 < data.size() && (comp(*data[ind + 1].first, *data[ind].first) || (!comp(*data[ind + 1].first, *data[ind].first) && data[ind + 1].second < data[ind].second)))
@@ -271,7 +271,7 @@ private:
 
 	bool is_consistent() const
 	{
-		for (size_t i = 0; i < data.size(); i++)
+		for (std::size_t i = 0; i < data.size(); i++)
 		{
 			auto res = value_to_idx.find(data[i].first.get());
 			if (i != res->second)
@@ -282,9 +282,9 @@ private:
 
 	bool is_heap() const
 	{
-		for (size_t i = 0; i < data.size(); i++)
+		for (std::size_t i = 0; i < data.size(); i++)
 		{
-			size_t left = 2 * i + 1, right = 2 * i + 2;
+			std::size_t left = 2 * i + 1, right = 2 * i + 2;
 			if (left < data.size() && !(comp(*data[i].first, *data[left].first) || !comp(*data[left].first, *data[i].first)))
 				return false;
 			if (right < data.size() && !(comp(*data[i].first, *data[right].first) || !comp(*data[right].first, *data[i].first)))
