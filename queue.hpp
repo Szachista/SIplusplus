@@ -52,16 +52,12 @@ public:
 		}
 		else if (comp(*x, *res->first))
 		{
+			auto idx = res->second;
 			value_to_idx.erase(res->first);
-			data[res->second] = std::move(x);
-			swim(res->second);
-			sink(res->second);
+			data[idx] = std::move(x);
+			swim(idx);
+			sink(idx);
 		}
-
-//		if (!is_consistent())
-//			throw std::runtime_error("Inconsistent queue!");
-//		if (!is_heap())
-//			throw std::runtime_error("Broken heap!");
 	}
 
 	std::unique_ptr<T> poll()
@@ -75,11 +71,6 @@ public:
 		value_to_idx.erase(res.get());
 		if (!data.empty())
 			sink(0);
-
-//		if (!is_consistent())
-//			throw std::runtime_error("Inconsistent queue!");
-//		if (!is_heap())
-//			throw std::runtime_error("Broken heap!");
 
 		return res;
 	}
@@ -126,30 +117,6 @@ private:
 		}
 		value_to_idx[data[idx].get()] = idx;
 	}
-
-	bool is_consistent() const
-	{
-		for (std::size_t i = 0; i < data.size(); i++)
-		{
-			auto res = value_to_idx.find(data[i].get());
-			if (i != res->second)
-				return false;
-		}
-		return true;
-	}
-
-	bool is_heap() const
-	{
-		for (std::size_t i = 0; i < data.size(); i++)
-		{
-			std::size_t left = 2 * i + 1, right = 2 * i + 2;
-			if (left < data.size() && !(comp(*data[i], *data[left]) || !comp(*data[left], *data[i])))
-				return false;
-			if (right < data.size() && !(comp(*data[i], *data[right]) || !comp(*data[right], *data[i])))
-				return false;
-		}
-		return true;
-	}
 };
 
 template<typename T, typename Compare>
@@ -194,16 +161,12 @@ public:
 		}
 		else if (comp(*x, *res->first))
 		{
+			auto idx = res->second;
 			value_to_idx.erase(res->first);
-			data[res->second].first = std::move(x);
-			swim(res->second);
-			sink(res->second);
+			data[idx] = std::move(x);
+			swim(idx);
+			sink(idx);
 		}
-
-//		if (!is_consistent())
-//			throw std::runtime_error("Inconsistent queue!");
-//		if (!is_heap())
-//			throw std::runtime_error("Broken heap!");
 	}
 
 	std::unique_ptr<T> poll()
@@ -217,11 +180,6 @@ public:
 		value_to_idx.erase(value_to_idx.find(res.first.get()));
 		if (!data.empty())
 			sink(0);
-
-//		if (!is_consistent())
-//			throw std::runtime_error("Inconsistent queue!");
-//		if (!is_heap())
-//			throw std::runtime_error("Broken heap!");
 
 		return std::move(res.first);
 	}
@@ -267,30 +225,6 @@ private:
 			idx = ind;
 		}
 		value_to_idx[data[idx].first.get()] = idx;
-	}
-
-	bool is_consistent() const
-	{
-		for (std::size_t i = 0; i < data.size(); i++)
-		{
-			auto res = value_to_idx.find(data[i].first.get());
-			if (i != res->second)
-				return false;
-		}
-		return true;
-	}
-
-	bool is_heap() const
-	{
-		for (std::size_t i = 0; i < data.size(); i++)
-		{
-			std::size_t left = 2 * i + 1, right = 2 * i + 2;
-			if (left < data.size() && !(comp(*data[i].first, *data[left].first) || !comp(*data[left].first, *data[i].first)))
-				return false;
-			if (right < data.size() && !(comp(*data[i].first, *data[right].first) || !comp(*data[right].first, *data[i].first)))
-				return false;
-		}
-		return true;
 	}
 };
 
