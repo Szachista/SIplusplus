@@ -160,7 +160,6 @@ protected:
 			if (code & i)
 				++cnt;
 		return cnt;
-//		return 0x3fffc0000000000ull - code;
 	}
 
 	bool is_equal(const graph_state &s) const override

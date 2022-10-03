@@ -8,13 +8,15 @@
 #include <unordered_set>
 #include <functional>
 #include <chrono>
+#include <cstdio>
 
 std::string parse_time(int64_t ms)
 {
 	if (ms < 0)
 		throw std::domain_error("Negative measure!");
 	char format[32] = {0};
-	sprintf(format,
+	std::snprintf(format,
+			sizeof(format),
 			"%02d:%02d:%02d.%03d",
 			static_cast<int>(ms / 3600000),
 			static_cast<int>((ms / 60000) % 60),
@@ -91,7 +93,7 @@ public:
 	std::vector<const graph_state<score_type>*> get_solution_path(size_t solution_num) const
 	{
 		std::vector<const graph_state<score_type>*> path;
-		auto state = solutions.at(solution_num).get();
+		auto state = get_solution(solution_num);
 		while (state != nullptr)
 		{
 			path.push_back(state);
@@ -155,5 +157,23 @@ private:
 	std::vector<std::unique_ptr<graph_state<score_type>>> solutions;
 	std::chrono::steady_clock::time_point start_time, stop_time;
 };
+
+template<typename score_type>
+bool default_f_compare(const graph_state<score_type> &a, const graph_state<score_type> &b)
+{
+	return a.get_f() < b.get_f();
+}
+
+template<typename score_type>
+bool default_g_compare(const graph_state<score_type> &a, const graph_state<score_type> &b)
+{
+	return a.get_g() < b.get_g();
+}
+
+template<typename score_type>
+bool default_h_compare(const graph_state<score_type> &a, const graph_state<score_type> &b)
+{
+	return a.get_h() < b.get_h();
+}
 
 #endif

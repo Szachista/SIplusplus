@@ -79,12 +79,12 @@ public:
 		}
 
 		// transport podwójnie
-		for (unsigned i = 0; i < levels[elevator].size(); i++)
-			for (unsigned j = i + 1; j < levels[elevator].size(); j++)
+		for (auto it_i = levels[elevator].begin(); it_i != levels[elevator].end(); ++it_i)
+			for (auto it_j = std::next(it_i); it_j != levels[elevator].end(); ++it_j)
 			{
-				auto it_i = levels[elevator].cbegin(), it_j = it_i;
-				advance(it_i, i);
-				advance(it_j, j);
+//				auto it_i = levels[elevator].cbegin(), it_j = it_i;
+//				advance(it_i, i);
+//				advance(it_j, j);
 				std::string_view item_i = *it_i, item_j = *it_j;
 				if (elevator > 0)
 				{
@@ -207,11 +207,15 @@ private:
 };
 std::unordered_map<std::string_view, size_t> state::hashcodes;
 
+template<typename score_type>
+bool astar_compare(const graph_state<score_type> &a, const graph_state<score_type> &b)
+{
+	return a.get_f() < b.get_f();
+}
+
 void perform_search(const state &initial)
 {
-	auto searcher = informative_searcher<uint8_t>(initial, [](const graph_state<uint8_t> &a, const graph_state<uint8_t> &b) {
-		return a.get_f() < b.get_f();
-	});
+	auto searcher = informative_searcher(initial, astar_compare<uint8_t>);
 	std::cout << searcher.get_stats() << std::endl;
 	std::cout << (int)searcher.get_solution(0)->get_g() << std::endl;
 }

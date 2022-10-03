@@ -6,7 +6,7 @@
 #include <string>
 #include <iostream>
 
-template<typename score_type=double>
+template<typename score_type>
 class graph_state
 {
 public:
