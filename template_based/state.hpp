@@ -220,39 +220,6 @@ private:
 	std::vector<typename std::unordered_map<state_t, prop>::iterator> q;
 };
 
-/*
-przeszukiwanie
-
-score(s0) = 0 + h(s0)
-
-search(s0)
-{
-	open_set {s0}
-	closed_set {}
-	while open_set is not empty:
-		s <- pop(open_set)
-
-		if s:	// operator bool() jako znalezione rozwiązanie?
-			return s
-
-		hs = h(s)
-
-		for t in successors(s):
-			if t in closed_set:
-				continue
-
-			score(t) = score(s) - hs + dist(s, t) + h(t)
-			parent(t) = s
-
-			if t not in open_set:
-				push(open_set, t)
-			elif score(t) < current(open_set, t):
-				update(open_set, t)
-
-		insert(closed_set, s)
-}
-*/
-
 //export
 template<typename state_t, typename score_t, template<typename, typename> class Delta, template<typename, typename> class Heuristic>
 class searcher
