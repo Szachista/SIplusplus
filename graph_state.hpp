@@ -6,10 +6,13 @@
 #include <string>
 #include <iostream>
 
-template<typename score_type>
+template<typename score_t>
 class graph_state
 {
 public:
+	using score_type = score_t;
+	using state_ptr = std::unique_ptr<graph_state<score_type>>;
+
 	graph_state()
 		: parent(nullptr)
 	{
@@ -21,7 +24,7 @@ public:
 	 * @brief Method creates copy of the current object.
 	 * @return Unique pointer to the copied object.
 	 */
-	virtual std::unique_ptr<graph_state> clone() const = 0;
+	virtual state_ptr clone() const = 0;
 
 	/**
 	 * @brief Method calculates hash of the current object.
@@ -33,7 +36,7 @@ public:
 	 * @brief get_successors
 	 * @return vector of unique pointers containing children states.
 	 */
-	virtual std::vector<std::unique_ptr<graph_state>> get_successors() const = 0;
+	virtual std::vector<state_ptr> get_successors() const = 0;
 
 	/**
 	 * @brief is_solution

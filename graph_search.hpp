@@ -9,6 +9,7 @@
 #include <functional>
 #include <chrono>
 #include <cstdio>
+#include <type_traits>
 
 std::string parse_time(int64_t ms)
 {
@@ -25,7 +26,8 @@ std::string parse_time(int64_t ms)
 	return format;
 }
 
-template<typename score_type>
+template<typename state_type, typename score_type = state_type::score_type>
+	requires std::is_base_of_v<graph_state<score_type>, state_type>
 class informative_searcher
 {
 public:
@@ -35,7 +37,9 @@ public:
 	 * @param comp Comparator used by priority queue.
 	 * @param max_solutions Maximum number of solutions to find.
 	 */
-	informative_searcher(const graph_state<score_type> &initial,
+//	template<typename Comp>
+	informative_searcher(const state_type &initial,
+//						 Comp<score_type> comp,
 						 std::function<bool(const graph_state<score_type>&, const graph_state<score_type>&)> comp,
 						 size_t max_solutions = 1)
 		: open(comp)
@@ -57,7 +61,7 @@ public:
 			if (s->is_solution())
 			{
 				solutions.push_back(std::move(s));
-				if (solutions.size() >= max_solutions)
+				if (solutions.size() == max_solutions)
 					break;
 				else
 					continue;
@@ -75,6 +79,12 @@ public:
 		stop_time  = std::chrono::steady_clock::now();
 	}
 
+	template<typename state_t, template<class> class Comp>
+	informative_searcher(const state_type &initial, size_t max_solutions = 1)
+		: informative_searcher(initial, Comp<typename state_t::score_type>{}, max_solutions)
+	{
+	}
+
 	/**
 	 * @brief get_number_of_solutions
 	 * @return number of found solutions
@@ -90,14 +100,14 @@ public:
 	 * Throws std::out_of_range if the number is invalid.
 	 * @return path from selected solution to initial node.
 	 */
-	std::vector<const graph_state<score_type>*> get_solution_path(size_t solution_num) const
+	std::vector<const state_type*> get_solution_path(size_t solution_num) const
 	{
-		std::vector<const graph_state<score_type>*> path;
-		auto state = get_solution(solution_num);
+		std::vector<const state_type*> path;
+		auto state = static_cast<const state_type*>(get_solution(solution_num));
 		while (state != nullptr)
 		{
 			path.push_back(state);
-			state = state->get_parent();
+			state = static_cast<const state_type*>(state->get_parent());
 		}
 		return path;
 	}
@@ -108,16 +118,17 @@ public:
 	 * Throws std::out_of_range if the number is invalid.
 	 * @return Pointer to selected solution.
 	 */
-	const graph_state<score_type>* get_solution(size_t solution_num) const
+	const state_type* get_solution(size_t solution_num) const
 	{
-		return solutions.at(solution_num).get();
+//		std::cout << typeid(state_type).name() << std::endl;
+		return static_cast<const state_type*>(solutions.at(solution_num).get());
 	}
 
 	/**
 	 * @brief get_closed
 	 * @return Reference to "Closed" set.
 	 */
-	const std::unordered_set<std::unique_ptr<graph_state<score_type>>>& get_closed() const
+	const auto& get_closed() const
 	{
 		return closed;
 	}
@@ -126,7 +137,7 @@ public:
 	 * @brief get_open
 	 * @return Reference to "Open" set.
 	 */
-	const updatable_priority_queue<graph_state<score_type>, std::function<bool(const graph_state<score_type>&, const graph_state<score_type>&)>>& get_open() const
+	const auto& get_open() const
 	{
 		return open;
 	}
@@ -156,6 +167,24 @@ private:
 	updatable_priority_queue<graph_state<score_type>, std::function<bool(const graph_state<score_type>&, const graph_state<score_type>&)>> open;
 	std::vector<std::unique_ptr<graph_state<score_type>>> solutions;
 	std::chrono::steady_clock::time_point start_time, stop_time;
+};
+
+//template<typename state_type, template<class> class Comp, typename score_type = state_type::score_type>
+//informative_searcher(const state_type&, Comp<score_type>, size_t) -> informative_searcher(const state_type&, std::function<bool(const graph_state<score_type>&, const graph_state<score_type>&)>, size_t);
+//template<template<class> class Comp, typename state_type>
+////	requires std::is_base_of_v<graph_state<typename state_type::score_type>, state_type>
+//Comp<typename state_type::score_type> make_comp(const state_type&)
+//{
+//	return Comp<typename state_type::score_type>{};
+//}
+
+template<typename score_type>
+struct default_G_compare
+{
+	bool operator()(const graph_state<score_type> &a, const graph_state<score_type> &b) const
+	{
+		return a.get_g() < b.get_g();
+	}
 };
 
 template<typename score_type>
