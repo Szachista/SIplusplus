@@ -186,7 +186,7 @@ private:
 
 void perform_search(const state &initial)
 {
-	auto searcher = informative_searcher<uint8_t>(initial, [](const graph_state<uint8_t> &a, const graph_state<uint8_t> &b) {
+	auto searcher = informative_searcher<state>(initial, [](const auto &a, const auto &b) {
 		return a.get_f() < b.get_f();
 	});
 	std::cout << searcher.get_stats() << std::endl;

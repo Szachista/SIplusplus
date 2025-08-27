@@ -125,17 +125,21 @@ public:
 
 	std::tuple<state_t, score_t, parent_t> pop()
 	{
+		//if (q.empty()) throw std::domain_error("Empty queue!");
+
 		score_t score = q[0]->second.score;
 		parent_t parent = q[0]->second.parent;
 		state_t state = std::move(obj2prop.extract(q[0]).key());
 
-		if (q.size() > 0)
-			std::swap(q.front(), q.back());
+		std::swap(q.front(), q.back());
 
 		q.pop_back();
 
-		q[0]->second.idx = 0;
-		down(0);
+		if (!q.empty())
+		{
+			q[0]->second.idx = 0;
+			down(0);
+		}
 
 		return { std::move(state), score, parent };
 	}
