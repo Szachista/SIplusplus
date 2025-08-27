@@ -95,10 +95,11 @@ private:
 		while (idx != 0 && comp(*data[idx], *data[(idx - 1) >> 1]))
 		{
 			std::swap(data[idx], data[(idx - 1) >> 1]);
-			value_to_idx[data[idx].get()] = idx;
+			value_to_idx[data[idx].get()] = static_cast<decltype(value_to_idx)::mapped_type>(idx);
 			idx = (idx - 1) >> 1;
 		}
-		value_to_idx[data[idx].get()] = idx;
+		value_to_idx[data[idx].get()] = static_cast<decltype(value_to_idx)::mapped_type>(idx);
+		validate();
 	}
 
 	void sink(std::size_t idx)
@@ -112,10 +113,39 @@ private:
 				// mniejszy (lub równy!)
 				break;
 			std::swap(data[idx], data[ind]);
-			value_to_idx[data[idx].get()] = idx;
+			value_to_idx[data[idx].get()] = static_cast<decltype(value_to_idx)::mapped_type>(idx);
 			idx = ind;
 		}
-		value_to_idx[data[idx].get()] = idx;
+		value_to_idx[data[idx].get()] = static_cast<decltype(value_to_idx)::mapped_type>(idx);
+		validate();
+	}
+
+	void validate()
+	{
+		return;
+		if (data.size() != value_to_idx.size())
+		{
+			std::cerr << "q.size() is different than obj2prop.size()!" << std::endl;
+			abort();
+		}
+		for (size_t i = 0; i < data.size(); i++)
+		{
+			if (value_to_idx[data[i].get()] != i)
+			{
+				std::cerr << "wrong idx: should be (" << i << "), but (" << value_to_idx[data[i].get()] << ") is given!" << std::endl;
+				abort();
+			}
+			if (2 * i + 1 < data.size() && comp(*data[2 * i + 1], *data[i]))
+			{
+				std::cerr << "left child is smaller!" << std::endl;
+				abort();
+			}
+			if (2 * i + 2 < data.size() && comp(*data[2 * i + 2], *data[i]))
+			{
+				std::cerr << "right child is smaller!" << std::endl;
+				abort();
+			}
+		}
 	}
 };
 

@@ -100,7 +100,7 @@ public:
 					cs.code |= (i << 14);
 
 					cs.code &= ~j;
-					assert((cs.code & (j <<14)) == 0);
+					assert((cs.code & (j << 14)) == 0);
 					cs.code |= (j << 14);
 
 					if (!cs.is_valid())
@@ -111,7 +111,7 @@ public:
 		return children;
 	}
 
-	static bool is_solution(const puzzle_state &s) { return (s.code & 0x3fffffffffful) == 0; }
+	static bool is_solution(const puzzle_state &s) { return (s.code & 0x3ffffffffffull) == 0; }
 
 	std::string to_string() const
 	{
@@ -133,7 +133,7 @@ public:
 	std::uint8_t get_heuristic_grade() const
 	{
 		uint8_t cnt = 0;
-		for (size_t i = 1uL << (3*14 - 1); i != 0; i >>= 1)
+		for (size_t i = 1uLL << (3*14 - 1); i != 0; i >>= 1)
 			if (code & i)
 				++cnt;
 		return cnt;
@@ -174,7 +174,7 @@ public:
 	}
 };
 
-void perform_search(puzzle_state initial)
+auto perform_search(puzzle_state initial)
 {
 	/*auto searcher = informative_searcher<uint8_t>(initial, [](const graph_state<uint8_t> &a, const graph_state<uint8_t> &b) {
 		return a.get_f() < b.get_f();
@@ -186,6 +186,7 @@ void perform_search(puzzle_state initial)
 
 	auto [solution, score] = srch.get_solution(0);
 	std::cout << (int)score << std::endl;
+	return srch;
 }
 
 int main()

@@ -17,7 +17,7 @@ public:
 	state(std::uint64_t code)
 		: code(code)
 	{
-		std::uint64_t elevator = code >> 14*4;
+		std::uint64_t elevator = code >> 14 * 4;
 		assert(elevator <= 3);
 	}
 
@@ -35,7 +35,7 @@ public:
 	{
 		std::vector<std::unique_ptr<graph_state>> children;
 
-		std::uint64_t elevator = code >> 14*4;
+		std::uint64_t elevator = code >> 14 * 4;
 		// transport pojedynczo
 		for (std::uint64_t i = 1ull << 14*elevator; i <= (0x3fffull << 14*elevator); i <<= 1)
 		{
@@ -133,7 +133,7 @@ public:
 		return children;
 	}
 
-	bool is_solution() const { return (code & 0x3fffffffffful) == 0; }
+	bool is_solution() const { return (code & 0x3ffffffffffull) == 0; }
 
 	std::string to_string() const override
 	{
@@ -156,7 +156,7 @@ protected:
 	std::uint8_t get_heuristic_grade() const
 	{
 		uint8_t cnt = 0;
-		for (size_t i = 1uL << (3*14 - 1); i != 0; i >>= 1)
+		for (size_t i = 1uLL << (3*14 - 1); i != 0; i >>= 1)
 			if (code & i)
 				++cnt;
 		return cnt;
@@ -184,13 +184,14 @@ private:
 	std::uint64_t code;
 };
 
-void perform_search(const state &initial)
+auto perform_search(const state &initial)
 {
 	auto searcher = informative_searcher<state>(initial, [](const auto &a, const auto &b) {
 		return a.get_f() < b.get_f();
 	});
 	std::cout << searcher.get_stats() << std::endl;
 	std::cout << (int)searcher.get_solution(0)->get_g() << std::endl;
+	return searcher;
 }
 
 int main()

@@ -21,7 +21,7 @@ static std::string parse_time(std::chrono::milliseconds t)
 	std::ostringstream str;
 	str.fill('0');
 
-	const int ms = abs(t.count() % 1000), s = abs(t.count()/1000) % 60,
+	const int64_t ms = abs(t.count() % 1000), s = abs(t.count()/1000) % 60,
 			m = abs(t.count()/60000) % 60, h = t.count() / 3600000;
 
 	str << std::setw(2) << h << ':' << std::setw(2) << m << ':'
@@ -108,8 +108,8 @@ public:
 				auto old_prop = it->second;
 				it->second.score = score;
 				it->second.parent = parent;
-				up(old_prop.score);
-				down(old_prop.score);
+				up(old_prop.idx);
+				down(old_prop.idx);
 				return true;
 			}
 		}
@@ -131,7 +131,8 @@ public:
 		parent_t parent = q[0]->second.parent;
 		state_t state = std::move(obj2prop.extract(q[0]).key());
 
-		std::swap(q.front(), q.back());
+		if (q.size() > 1)
+			std::swap(q.front(), q.back());
 
 		q.pop_back();
 
@@ -181,7 +182,7 @@ private:
 		{
 			size_t p = (idx - 1) / 2;
 
-			if (q[p]->second.score < q[idx]->second.score)
+			if (q[p]->second.score <= q[idx]->second.score)
 				break;
 
 			std::swap(q[p]->second.idx, q[idx]->second.idx);
@@ -301,6 +302,8 @@ public:
 
 		return path;
 	}
+
+	const auto& get_closed() const { return closed; }
 
 private:
 	static void progress(const searcher *s, std::ostream &out)
