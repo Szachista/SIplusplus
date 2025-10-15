@@ -480,13 +480,13 @@ public:
 	}
 
 	template<typename Successors>
-	graph_searcher(state_t&& s0, Successors generator, bool show_progress=true)
+	graph_searcher(state_t&& s0, Successors generator, bool show_progress=false)
 	{
 		std::ostream no_output {nullptr};
 		running = true;
 
 		start_time = std::chrono::steady_clock::now();
-		auto thr = std::thread(graph_searcher::progress, std::ref(*this), std::ref(progress ? std::cout : no_output));
+		auto thr = std::thread(graph_searcher::progress, std::ref(*this), std::ref(show_progress ? std::cout : no_output));
 
 		open.push(std::move(s0), heuristic(s0), closed.end());
 		while (!open.empty())
