@@ -25,6 +25,11 @@ public:
 		return s.code;
 	}
 
+	std::vector<puzzle_state> get_children() const
+	{
+		return get_successors(*this);
+	}
+
 	static std::vector<puzzle_state> get_successors(const puzzle_state &s)
 	{
 		std::vector<puzzle_state> children;
@@ -122,7 +127,7 @@ public:
 		for (int i = 3; i >= 0; i--)
 		{
 			out << i << setw(2) << (elevator == i ? "E" : "");
-			for (std::uint64_t j = 1ull << 14*i; j <= (0x3fffull << 14*i); j <<= 1)
+			for (auto j = 1ull << 14*i; j <= (0x3fffull << 14*i); j <<= 1)
 				if (code & j)
 					out << setw(5) << M[(code & j) >> 14*i];
 			out << std::endl;
@@ -133,11 +138,13 @@ public:
 	std::uint8_t get_heuristic_grade() const
 	{
 		uint8_t cnt = 0;
-		for (size_t i = 1uLL << (3*14 - 1); i != 0; i >>= 1)
+		for (auto i = 1uLL << (3*14 - 1); i != 0; i >>= 1)
 			if (code & i)
 				++cnt;
 		return cnt;
 	}
+
+	uint8_t delta(const puzzle_state &s) const { return 1; }
 
 	bool operator== (const puzzle_state &s) const { return code == s.code; }
 
@@ -163,30 +170,66 @@ struct std::hash<puzzle_state>
 	size_t operator()(const puzzle_state &s) const { return puzzle_state::hash_code(s); }
 };
 
-template<typename state_t, typename score_t>
+template<typename score_t>
 class simple_heuristic
 {
-static_assert(std::is_same_v<state_t, puzzle_state>);
 public:
-	constexpr score_t operator()(const state_t &s) const
+	constexpr score_t operator()(const puzzle_state &s) const
 	{
 		return s.get_heuristic_grade();
 	}
 };
 
-auto perform_search(puzzle_state initial)
+template<>
+struct solution_predicate<puzzle_state>
 {
-	/*auto searcher = informative_searcher<uint8_t>(initial, [](const graph_state<uint8_t> &a, const graph_state<uint8_t> &b) {
-		return a.get_f() < b.get_f();
-	});
-	std::cout << searcher.get_stats() << std::endl;
-	std::cout << (int)searcher.get_solution(0)->get_g() << std::endl;*/
-	searcher<puzzle_state, uint8_t, delta_unit, simple_heuristic> srch(std::move(initial), puzzle_state::get_successors, puzzle_state::is_solution);
-	std::cout << srch.get_summary() << std::endl;
+	bool operator()(const puzzle_state &s) const { return puzzle_state::is_solution(s); }
+};
 
-	auto [solution, score] = srch.get_solution(0);
-	std::cout << (int)score << std::endl;
-	return srch;
+void perform_search(puzzle_state initial)
+{
+	{
+		std::cout << "\tgraph_searcher(delta_unit, simple_heuristic):\n";
+		graph_searcher<puzzle_state, uint8_t, delta_unit, simple_heuristic> srch(std::move(initial), puzzle_state::get_successors, true);
+		std::cout << srch.get_summary();// << std::endl;
+
+		auto [solution, score] = srch.get_solution(0);
+		std::cout << (int)score << std::endl;
+	}
+
+	{
+		std::cout << "\tinformative_searcher(g, h):\n";
+		auto res = informative_searcher(initial, &puzzle_state::get_children, &puzzle_state::delta, &puzzle_state::get_heuristic_grade, true);
+		std::cout << res.get_summary();// << std::endl;
+
+		auto [solution, score] = res.get_solution(0);
+		std::cout << (int)score << std::endl;
+	}
+
+	{
+		std::cout << "\tinformative_searcher(h):\n";
+		auto res = informative_searcher(initial, &puzzle_state::get_children, &puzzle_state::get_heuristic_grade, true);
+		std::cout << res.get_summary();// << std::endl;
+
+		std::cout << res.get_path(0).size() - 1 << std::endl;
+	}
+
+	{
+		std::cout << "\tinformative_searcher(g):\n";
+		auto res = informative_searcher(initial, &puzzle_state::get_children, &puzzle_state::delta, true);
+		std::cout << res.get_summary();// << std::endl;
+
+		auto [solution, score] = res.get_solution(0);
+		std::cout << (int)score << std::endl;
+	}
+
+	{
+		std::cout << "\tinformative_searcher():\n";
+		auto res = informative_searcher(initial, &puzzle_state::get_children, true);
+		std::cout << res.get_summary();// << std::endl;
+
+		std::cout << res.get_path(0).size() - 1 << std::endl;
+	}
 }
 
 int main()

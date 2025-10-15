@@ -1,4 +1,4 @@
-FLAGS=-w -Werror -pedantic -std=c++20 -O3
+FLAGS=-w -Werror -pedantic -std=c++23 -O3
 
 all: bitmap_rep string_rep bitmap_rep_templ
 
