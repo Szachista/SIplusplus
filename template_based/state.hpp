@@ -77,7 +77,7 @@ public:
 template<typename state_t>
 struct hash_iterator
 {
-	size_t operator()(std::unordered_set<state_t>::const_iterator it) const
+	size_t operator()(typename std::unordered_set<state_t>::const_iterator it) const
 	{
 		return h(*it);
 	}
@@ -87,7 +87,7 @@ struct hash_iterator
 template<typename state_t>
 struct equal_to_iterator
 {
-	bool operator()(std::unordered_set<state_t>::const_iterator a, std::unordered_set<state_t>::const_iterator b) const
+	bool operator()(typename std::unordered_set<state_t>::const_iterator a, typename std::unordered_set<state_t>::const_iterator b) const
 	{
 		return *a == *b;
 	}
@@ -256,6 +256,7 @@ struct solution_predicate
 	constexpr bool operator()(const state_t &) const { return false; }
 };
 
+//export
 template<typename state_t, typename Open, typename Solutions>
 class search_result
 {
@@ -294,10 +295,10 @@ public:
 
 	auto get_path(size_t idx) const
 	{
-		if (idx >= solutions.size())
-			return {};
-
 		std::vector<typename std::unordered_set<state_t>::const_iterator> path;
+
+		if (idx >= solutions.size())
+			return path;
 
 		if constexpr (is_pair<typename Solutions::value_type>::value)
 			for (auto it = solutions[idx].first; it != closed.end(); it = parent_map.at(it))
@@ -317,6 +318,7 @@ private:
 	std::chrono::milliseconds elapsed_time;
 };
 
+//export
 template<typename state_t, typename score_t>
 auto informative_searcher(state_t &&s0,
 						  std::vector<state_t> (state_t::*successors)() const,
@@ -419,6 +421,7 @@ auto informative_searcher(state_t &&s0,
 	return search_result(std::move(closed), std::move(parent_map), std::move(open), std::move(solutions), elapsed_time);
 }
 
+//export
 template<typename state_t, typename score_t>
 auto informative_searcher(const state_t &s0,
 						  std::vector<state_t> (state_t::*successors)() const,
@@ -429,36 +432,42 @@ auto informative_searcher(const state_t &s0,
 	return informative_searcher(state_t{s0}, successors, delta, heuristic, show_progress);
 }
 
+//export
 template<typename state_t>
 auto informative_searcher(state_t &&s0, std::vector<state_t> (state_t::*children)() const, bool show_progress=false)
 {
 	return informative_searcher<state_t, void>(std::move(s0), children, nullptr, nullptr, show_progress);
 }
 
+//export
 template<typename state_t, typename score_t>
 auto informative_searcher(state_t &&s0, std::vector<state_t> (state_t::*children)() const, score_t (state_t::*delta)(const state_t&) const, bool show_progress=false)
 {
 	return informative_searcher<state_t, score_t>(std::move(s0), children, delta, nullptr, show_progress);
 }
 
+//export
 template<typename state_t, typename score_t>
 auto informative_searcher(state_t &&s0, std::vector<state_t> (state_t::*children)() const, score_t (state_t::*heuristic)() const, bool show_progress=false)
 {
 	return informative_searcher<state_t, score_t>(std::move(s0), children, nullptr, heuristic, show_progress);
 }
 
+//export
 template<typename state_t>
 auto informative_searcher(const state_t &s0, std::vector<state_t> (state_t::*children)() const, bool show_progress=false)
 {
 	return informative_searcher<state_t, void>(state_t{s0}, children, nullptr, nullptr, show_progress);
 }
 
+//export
 template<typename state_t, typename score_t>
 auto informative_searcher(const state_t &s0, std::vector<state_t> (state_t::*children)() const, score_t (state_t::*delta)(const state_t&) const, bool show_progress=false)
 {
 	return informative_searcher<state_t, score_t>(state_t{s0}, children, delta, nullptr, show_progress);
 }
 
+//export
 template<typename state_t, typename score_t>
 auto informative_searcher(const state_t &s0, std::vector<state_t> (state_t::*children)() const, score_t (state_t::*heuristic)() const, bool show_progress=false)
 {
