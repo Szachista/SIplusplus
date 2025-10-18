@@ -265,7 +265,7 @@ public:
 				  std::unordered_map<typename std::unordered_set<state_t>::const_iterator, typename std::unordered_set<state_t>::const_iterator, hash_iterator<state_t>, equal_to_iterator<state_t>> &&parent_map,
 				  Open &&open,
 				  Solutions &&solutions,
-				  std::chrono::milliseconds elapsed_time) :
+				  std::chrono::steady_clock::duration elapsed_time) :
 		closed(std::move(closed)),
 		parent_map(std::move(parent_map)),
 		open(std::move(open)),
@@ -278,10 +278,10 @@ public:
 	{
 		std::ostringstream str;
 
-		str << "elapsed time: " << parse_time(elapsed_time) << std::endl;
+		str << "elapsed time: " << parse_time(get_elapsed_time()) << std::endl;
 		str << "#visited    : " << closed.size() << std::endl;
 		str << "#open       : " << open.size() << std::endl;
-		str << "nodes/second: " << (closed.size() + open.size())*1000/std::max<size_t>(elapsed_time.count(),1) << std::endl;
+		str << "nodes/second: " << (closed.size() + open.size())*1000000000/get_elapsed_time<std::chrono::nanoseconds>().count() << std::endl;
 
 		return str.str();
 	}
@@ -310,12 +310,22 @@ public:
 		return path;
 	}
 
+	const auto& get_closed() const { return closed; }
+
+	const auto& get_open() const { return open; }
+
+	template<typename Unit=std::chrono::milliseconds>
+	Unit get_elapsed_time() const
+	{
+		return std::chrono::duration_cast<Unit>(elapsed_time);
+	}
+
 private:
 	std::unordered_set<state_t> closed;
 	std::unordered_map<typename std::unordered_set<state_t>::const_iterator, typename std::unordered_set<state_t>::const_iterator, hash_iterator<state_t>, equal_to_iterator<state_t>> parent_map;
 	Open open;
 	Solutions solutions;
-	std::chrono::milliseconds elapsed_time;
+	std::chrono::steady_clock::duration elapsed_time;
 };
 
 //export
@@ -335,7 +345,7 @@ auto informative_searcher(state_t &&s0,
 			std::vector<typename std::unordered_set<state_t>::const_iterator>,
 			std::vector<std::pair<typename std::unordered_set<state_t>::const_iterator, score_t>>> solutions;
 	bool running;
-	std::chrono::milliseconds elapsed_time;
+	std::chrono::steady_clock::duration elapsed_time;
 	std::chrono::steady_clock::time_point start_time, stop_time;
 
 	std::ostream no_output {nullptr};
@@ -413,7 +423,7 @@ auto informative_searcher(state_t &&s0,
 	}
 
 	stop_time = std::chrono::steady_clock::now();
-	elapsed_time = std::chrono::duration_cast<std::chrono::milliseconds>(stop_time - start_time);
+	elapsed_time = stop_time - start_time;
 
 	running = false;
 	thr.join();
