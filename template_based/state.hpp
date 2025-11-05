@@ -1,7 +1,7 @@
 #ifndef STATE_HPP
 #define STATE_HPP
 
-//#include <bits/stdc++.h>
+#include <algorithm>
 #include <unordered_map>
 #include <unordered_set>
 #include <memory>
@@ -13,11 +13,8 @@
 #include <iomanip>
 #include <optional>
 #include <functional>
-//#include <future>
+#include <cstring>
 using namespace std::literals;
-
-//export module state;
-//import std;
 
 template <typename...> struct is_unique_ptr final : std::false_type {};
 template<class T, typename... Args>
@@ -27,8 +24,10 @@ template <typename...> struct is_pair final : std::false_type {};
 template<typename T1, typename T2>
 struct is_pair<std::pair<T1, T2>> final : std::true_type {};
 
-static std::string parse_time(std::chrono::milliseconds t)
+template<typename duration>
+static std::string parse_time(duration dur)
 {
+	auto t = std::chrono::duration_cast<std::chrono::milliseconds>(dur);
 	std::ostringstream str;
 	str.fill('0');
 
@@ -41,12 +40,13 @@ static std::string parse_time(std::chrono::milliseconds t)
 	return str.str();
 }
 
-//export
+// export
 template<typename score_t>
 class delta_zero
 {
 public:
-	constexpr score_t operator()(const auto&, const auto&) const
+	template<typename state_t>
+	constexpr score_t operator()(const state_t&, const state_t&) const
 	{
 		return 0;
 	}
@@ -57,7 +57,8 @@ template<typename score_t>
 class delta_unit
 {
 public:
-	constexpr score_t operator()(const auto&, const auto&) const
+	template<typename state_t>
+	constexpr score_t operator()(const state_t&, const state_t&) const
 	{
 		return 1;
 	}
@@ -68,7 +69,8 @@ template<typename score_t>
 class no_heuristic
 {
 public:
-	constexpr score_t operator()(const auto&) const
+	template<typename state_t>
+	constexpr score_t operator()(const state_t&) const
 	{
 		return 0;
 	}
@@ -77,7 +79,7 @@ public:
 template<typename state_t>
 struct hash_iterator
 {
-	size_t operator()(typename std::unordered_set<state_t>::const_iterator it) const
+	size_t operator()(std::unordered_set<state_t>::const_iterator it) const
 	{
 		return h(*it);
 	}
@@ -87,7 +89,7 @@ struct hash_iterator
 template<typename state_t>
 struct equal_to_iterator
 {
-	bool operator()(typename std::unordered_set<state_t>::const_iterator a, typename std::unordered_set<state_t>::const_iterator b) const
+	bool operator()(std::unordered_set<state_t>::const_iterator a, std::unordered_set<state_t>::const_iterator b) const
 	{
 		return *a == *b;
 	}
@@ -106,9 +108,9 @@ template<typename state_t, typename score_t, typename parent_t>
 class priority_queue
 {
 public:
-	bool empty() const { return q.empty(); }
+	[[nodiscard]] bool empty() const { return q.empty(); }
 
-	size_t size() const { return q.size(); }
+	[[nodiscard]] size_t size() const { return q.size(); }
 
 	bool push(state_t&& t, score_t score, parent_t parent)
 	{
@@ -121,7 +123,6 @@ public:
 				it->second.parent = parent;
 				up(old_prop.idx);
 				down(old_prop.idx);
-//				std::cout << "push: "; print();
 				return true;
 			}
 		}
@@ -130,7 +131,6 @@ public:
 			auto [iter, inserted] = obj2prop.emplace(std::move(t), prop{score, parent, q.size()});
 			q.push_back(iter);
 			up(q.size() - 1);
-//			std::cout << "push: "; print();
 			return true;
 		}
 		return false;
@@ -154,20 +154,9 @@ public:
 			q[0]->second.idx = 0;
 			down(0);
 		}
-//		std::cout << "pop : "; print();
 
 		return { std::move(state), score, parent };
 	}
-
-//	void print() const
-//	{
-//		for (const auto &[s, p] : obj2prop)
-//			if constexpr (ptr_syntax<state_t>)
-//				std::cout << "[" << s->to_string() << ", " << p.idx << "]; ";
-//			else
-//				std::cout << "[" << s.to_string() << ", " << p.idx << "]; ";
-//		std::cout << std::endl << std::endl;
-//	}
 
 private:
 	struct prop
@@ -274,24 +263,21 @@ public:
 	{
 	}
 
-	std::string get_summary() const
+	[[nodiscard]] std::string get_summary() const
 	{
 		std::ostringstream str;
 
 		str << "elapsed time: " << parse_time(get_elapsed_time()) << std::endl;
 		str << "#visited    : " << closed.size() << std::endl;
 		str << "#open       : " << open.size() << std::endl;
-		str << "nodes/second: " << (closed.size() + open.size())*1000000000/get_elapsed_time<std::chrono::nanoseconds>().count() << std::endl;
+		str << "nodes/second: " << (closed.size() + open.size())*1000000000ull/get_elapsed_time<std::chrono::nanoseconds>().count() << std::endl;
 
 		return str.str();
 	}
 
-	size_t get_number_of_solutions() const { return solutions.size(); }
+	[[nodiscard]] size_t get_number_of_solutions() const { return solutions.size(); }
 
-	auto get_solution(size_t idx) const
-	{
-		return solutions.at(idx);
-	}
+	auto get_solution(size_t idx) const { return solutions.at(idx); }
 
 	auto get_path(size_t idx) const
 	{
@@ -315,10 +301,7 @@ public:
 	const auto& get_open() const { return open; }
 
 	template<typename Unit=std::chrono::milliseconds>
-	Unit get_elapsed_time() const
-	{
-		return std::chrono::duration_cast<Unit>(elapsed_time);
-	}
+	Unit get_elapsed_time() const { return std::chrono::duration_cast<Unit>(elapsed_time); }
 
 private:
 	std::unordered_set<state_t> closed;
@@ -328,34 +311,33 @@ private:
 	std::chrono::steady_clock::duration elapsed_time;
 };
 
+// TODO złączyć obie funkcje w jedno, przemyśleć delta/heuristic (może nie trzeba sprawdzać != nullptr)
+
 //export
 template<typename state_t, typename score_t>
 auto informative_searcher(state_t &&s0,
-						  std::vector<state_t> (state_t::*successors)() const,
+						  std::vector<state_t>(state_t::*successors)() const,
+						  bool (state_t::*is_solution)() const,
 						  score_t (state_t::*delta)(const state_t&) const,
 						  score_t (state_t::*heuristic)() const,
 						  bool show_progress=false)
 {
-	solution_predicate<state_t> is_solution{};
-
 	std::unordered_set<state_t> closed;
 	std::conditional_t<std::is_same_v<score_t, void>, std::unordered_map<state_t, typename std::unordered_set<state_t>::const_iterator>, priority_queue<state_t, score_t, typename std::unordered_set<state_t>::const_iterator>> open;
 	std::unordered_map<typename std::unordered_set<state_t>::const_iterator, typename std::unordered_set<state_t>::const_iterator, hash_iterator<state_t>, equal_to_iterator<state_t>> parent_map;
 	std::conditional_t<std::is_same_v<score_t, void>,
 			std::vector<typename std::unordered_set<state_t>::const_iterator>,
 			std::vector<std::pair<typename std::unordered_set<state_t>::const_iterator, score_t>>> solutions;
-	bool running;
-	std::chrono::steady_clock::duration elapsed_time;
-	std::chrono::steady_clock::time_point start_time, stop_time;
+	std::chrono::steady_clock::time_point start_time;
 
 	std::ostream no_output {nullptr};
-	running = true;
+	bool running = true;
 
 	auto progress = [&running, &start_time, &closed, &open](std::ostream &out)
 	{
 		while (running)
 		{
-			out << parse_time(std::chrono::duration_cast<std::chrono::seconds>(std::chrono::steady_clock::now() - start_time)) << " #closed = " << closed.size() << ", #open = " << open.size() << "                \r";
+			out << parse_time(std::chrono::duration_cast<std::chrono::seconds>(std::chrono::steady_clock::now() - start_time)) << " #closed = " << closed.size() << ", #open = " << open.size() << "				\r";
 			out.flush();
 			std::this_thread::sleep_for(std::chrono::seconds{1});
 		}
@@ -369,22 +351,22 @@ auto informative_searcher(state_t &&s0,
 	{
 		// Breadth First Search
 		open.emplace(std::move(s0), closed.end());
-		while (!open.empty())
+		while (!open.empty() && solutions.empty())
 		{
 			auto old_open = std::move(open);
-			for (auto &[s, parent] : old_open)
+			while (!old_open.empty())
 			{
-				auto s_closed = closed.insert(std::move(s)).first;
-				parent_map[s_closed] = parent;
+				auto item = old_open.extract(old_open.begin());
+				auto s_closed = closed.insert(std::move(item.key())).first;
+				parent_map[s_closed] = item.mapped();
 
-				if (is_solution(*s_closed))
+				if (std::invoke(is_solution, *s_closed))
 				{
 					solutions.push_back(s_closed);
 					break;
 				}
 
-				auto children = std::move((*s_closed.*successors)());
-				for (state_t &t : children)
+				for (auto &t : std::invoke(successors, *s_closed))
 					if (!closed.contains(t))
 						open.emplace(std::move(t), s_closed);
 			}
@@ -392,38 +374,136 @@ auto informative_searcher(state_t &&s0,
 	}
 	else
 	{
-		open.push(std::move(s0), (heuristic != nullptr ? (s0.*heuristic)() : 0), closed.end());
+		open.push(std::move(s0), (heuristic != nullptr ? std::invoke(heuristic, s0) : 0), closed.end());
 		while (!open.empty())
 		{
 			auto [s, score, parent] = open.pop();
 			auto s_closed = closed.insert(std::move(s)).first;
 			parent_map[s_closed] = parent;
 
-			if (is_solution(*s_closed))
+			if (std::invoke(is_solution, *s_closed))
 			{
 				solutions.push_back(std::make_pair(s_closed, score));
 				break;
 			}
 
 			if (heuristic != nullptr)
-				score -= (*s_closed.*heuristic)(); // zostaje samo g(s)
+				score -= std::invoke(heuristic, *s_closed); // zostaje samo g(s)
 
-			auto children = std::move((*s_closed.*successors)());
-
-			for (state_t& t : children)
+			for (auto& t : std::invoke(successors, *s_closed))
 			{
 				if (closed.contains(t))
 					continue;
 
-				score_t h = (heuristic != nullptr ? (t.*heuristic)() : 0);
-				score_t d = (delta != nullptr ? (*s_closed.*delta)(t) : 0);
+				score_t h = (heuristic != nullptr ? std::invoke(heuristic, t) : 0);
+				score_t d = (delta != nullptr ? std::invoke(delta, *s_closed, t) : 0);
 				open.push(std::move(t), score + d + h, s_closed);
 			}
 		}
 	}
 
-	stop_time = std::chrono::steady_clock::now();
-	elapsed_time = stop_time - start_time;
+	std::chrono::steady_clock::time_point stop_time = std::chrono::steady_clock::now();
+	std::chrono::steady_clock::duration elapsed_time = stop_time - start_time;
+
+	running = false;
+	thr.join();
+
+	return search_result(std::move(closed), std::move(parent_map), std::move(open), std::move(solutions), elapsed_time);
+}
+
+//export
+template<typename state_t, typename score_t>
+auto informative_searcher(std::unique_ptr<state_t> &&s0,
+						  std::vector<std::unique_ptr<state_t>> (state_t::*successors)() const,
+						  bool (state_t::*is_solution)() const,
+						  score_t (state_t::*delta)(const std::unique_ptr<state_t>&) const,
+						  score_t (state_t::*heuristic)() const,
+						  bool show_progress=false)
+{
+	std::unordered_set<std::unique_ptr<state_t>> closed;
+	std::conditional_t<std::is_same_v<score_t, void>,
+					   std::unordered_map<std::unique_ptr<state_t>, typename std::unordered_set<std::unique_ptr<state_t>>::const_iterator>,
+					   priority_queue<std::unique_ptr<state_t>, score_t, typename std::unordered_set<std::unique_ptr<state_t>>::const_iterator>> open;
+	std::unordered_map<typename std::unordered_set<std::unique_ptr<state_t>>::const_iterator, typename std::unordered_set<std::unique_ptr<state_t>>::const_iterator, hash_iterator<std::unique_ptr<state_t>>, equal_to_iterator<std::unique_ptr<state_t>>> parent_map;
+	std::conditional_t<std::is_same_v<score_t, void>,
+					   std::vector<typename std::unordered_set<std::unique_ptr<state_t>>::const_iterator>,
+					   std::vector<std::pair<typename std::unordered_set<std::unique_ptr<state_t>>::const_iterator, score_t>>> solutions;
+	std::chrono::steady_clock::time_point start_time;
+
+	std::ostream no_output {nullptr};
+	bool running = true;
+
+	auto progress = [&running, &start_time, &closed, &open](std::ostream &out)
+	{
+		while (running)
+		{
+			out << parse_time(std::chrono::duration_cast<std::chrono::seconds>(std::chrono::steady_clock::now() - start_time)) << " #closed = " << closed.size() << ", #open = " << open.size() << "				\r";
+			out.flush();
+			std::this_thread::sleep_for(std::chrono::seconds{1});
+		}
+		(out << std::string(50, ' ') << '\r').flush();
+	};
+
+	start_time = std::chrono::steady_clock::now();
+	auto thr = std::thread(progress, std::ref(show_progress ? std::cout : no_output));
+
+	if constexpr (std::is_same_v<score_t, void>)
+	{
+		// Breadth First Search
+		open.emplace(std::move(s0), closed.end());
+		while (!open.empty() && solutions.empty())
+		{
+			auto old_open = std::move(open);
+			while (!old_open.empty())
+			{
+				auto item = old_open.extract(old_open.begin());
+				auto s_closed = closed.insert(std::move(item.key())).first;
+				parent_map[s_closed] = item.mapped();
+
+				if (std::invoke(is_solution, *s_closed))
+				{
+					solutions.push_back(s_closed);
+					break;
+				}
+
+				for (auto &t : std::invoke(successors, *s_closed))
+					if (!closed.contains(t))
+						open.emplace(std::move(t), s_closed);
+			}
+		}
+	}
+	else
+	{
+		open.push(std::move(s0), (heuristic != nullptr ? std::invoke(heuristic, s0) : 0), closed.end());
+		while (!open.empty())
+		{
+			auto [s, score, parent] = open.pop();
+			auto s_closed = closed.insert(std::move(s)).first;
+			parent_map[s_closed] = parent;
+
+			if (std::invoke(is_solution, *s_closed))
+			{
+				solutions.push_back(std::make_pair(s_closed, score));
+				break;
+			}
+
+			if (heuristic != nullptr)
+				score -= std::invoke(heuristic, *s_closed); // zostaje samo g(s)
+
+			for (auto& t : std::invoke(successors, *s_closed))
+			{
+				if (closed.contains(t))
+					continue;
+
+				score_t h = (heuristic != nullptr ? std::invoke(heuristic, t) : 0);
+				score_t d = (delta != nullptr ? std::invoke(delta, *s_closed, t) : 0);
+				open.push(std::move(t), score + d + h, s_closed);
+			}
+		}
+	}
+
+	std::chrono::steady_clock::time_point stop_time = std::chrono::steady_clock::now();
+	std::chrono::steady_clock::duration elapsed_time = stop_time - start_time;
 
 	running = false;
 	thr.join();
@@ -434,59 +514,123 @@ auto informative_searcher(state_t &&s0,
 //export
 template<typename state_t, typename score_t>
 auto informative_searcher(const state_t &s0,
-						  std::vector<state_t> (state_t::*successors)() const,
+						  std::vector<state_t>(state_t::*successors)() const,
+						  bool (state_t::*is_solution)() const,
 						  score_t (state_t::*delta)(const state_t&) const,
 						  score_t (state_t::*heuristic)() const,
 						  bool show_progress=false)
 {
-	return informative_searcher(state_t{s0}, successors, delta, heuristic, show_progress);
+	return ::informative_searcher(state_t{s0}, successors, is_solution, delta, heuristic, show_progress);
+}
+
+//export
+template<typename state_t, typename score_t>
+auto informative_searcher(const std::unique_ptr<state_t> &s0,
+						  std::vector<std::unique_ptr<state_t>> (state_t::*successors)() const,
+						  bool (state_t::*is_solution)() const,
+						  score_t (state_t::*delta)(const std::unique_ptr<state_t>&) const,
+						  score_t (state_t::*heuristic)() const,
+						  bool show_progress=false)
+{
+	return ::informative_searcher(std::make_unique<state_t>(*s0), successors, is_solution, delta, heuristic, show_progress);
+}
+
+/*
+ * Breadth First Search
+ */
+//export
+template<typename state_t>
+auto informative_searcher(state_t &&s0, std::vector<state_t>(state_t::*successors)() const, bool (state_t::*is_solution)() const, bool show_progress=false)
+{
+	return ::informative_searcher<state_t, void>(std::move(s0), successors, is_solution, nullptr, nullptr, show_progress);
 }
 
 //export
 template<typename state_t>
-auto informative_searcher(state_t &&s0, std::vector<state_t> (state_t::*children)() const, bool show_progress=false)
+auto informative_searcher(const state_t &s0, std::vector<state_t>(state_t::*successors)() const, bool (state_t::*is_solution)() const, bool show_progress=false)
 {
-	return informative_searcher<state_t, void>(std::move(s0), children, nullptr, nullptr, show_progress);
-}
-
-//export
-template<typename state_t, typename score_t>
-auto informative_searcher(state_t &&s0, std::vector<state_t> (state_t::*children)() const, score_t (state_t::*delta)(const state_t&) const, bool show_progress=false)
-{
-	return informative_searcher<state_t, score_t>(std::move(s0), children, delta, nullptr, show_progress);
-}
-
-//export
-template<typename state_t, typename score_t>
-auto informative_searcher(state_t &&s0, std::vector<state_t> (state_t::*children)() const, score_t (state_t::*heuristic)() const, bool show_progress=false)
-{
-	return informative_searcher<state_t, score_t>(std::move(s0), children, nullptr, heuristic, show_progress);
+	return ::informative_searcher<state_t, void>(state_t{s0}, successors, is_solution, nullptr, nullptr, show_progress);
 }
 
 //export
 template<typename state_t>
-auto informative_searcher(const state_t &s0, std::vector<state_t> (state_t::*children)() const, bool show_progress=false)
+auto informative_searcher(std::unique_ptr<state_t> &&s0, std::vector<std::unique_ptr<state_t>> (state_t::*successors)() const, bool (state_t::*is_solution)() const, bool show_progress=false)
 {
-	return informative_searcher<state_t, void>(state_t{s0}, children, nullptr, nullptr, show_progress);
+	return ::informative_searcher<state_t, void>(std::move(s0), successors, is_solution, nullptr, nullptr, show_progress);
+}
+
+//export
+template<typename state_t>
+auto informative_searcher(const std::unique_ptr<state_t> &s0, std::vector<std::unique_ptr<state_t>> (state_t::*successors)() const, bool (state_t::*is_solution)() const, bool show_progress=false)
+{
+	return ::informative_searcher<state_t, void>(std::make_unique<state_t>(*s0), successors, is_solution, nullptr, nullptr, show_progress);
+}
+
+/*
+ * Dijkstra
+ */
+//export
+template<typename state_t, typename score_t>
+auto informative_searcher(state_t &&s0, std::vector<state_t>(state_t::*successors)() const, bool (state_t::*is_solution)() const, score_t (state_t::*delta)(const state_t&) const, bool show_progress=false)
+{
+	return ::informative_searcher<state_t, score_t>(std::move(s0), successors, is_solution, delta, nullptr, show_progress);
 }
 
 //export
 template<typename state_t, typename score_t>
-auto informative_searcher(const state_t &s0, std::vector<state_t> (state_t::*children)() const, score_t (state_t::*delta)(const state_t&) const, bool show_progress=false)
+auto informative_searcher(const state_t &s0, std::vector<state_t>(state_t::*successors)() const, bool (state_t::*is_solution)() const, score_t (state_t::*delta)(const state_t&) const, bool show_progress=false)
 {
-	return informative_searcher<state_t, score_t>(state_t{s0}, children, delta, nullptr, show_progress);
+	return ::informative_searcher<state_t, score_t>(state_t{s0}, successors, is_solution, delta, nullptr, show_progress);
 }
 
 //export
 template<typename state_t, typename score_t>
-auto informative_searcher(const state_t &s0, std::vector<state_t> (state_t::*children)() const, score_t (state_t::*heuristic)() const, bool show_progress=false)
+auto informative_searcher(std::unique_ptr<state_t> &&s0, std::vector<std::unique_ptr<state_t>> (state_t::*successors)() const, bool (state_t::*is_solution)() const, score_t (state_t::*delta)(const std::unique_ptr<state_t>&) const, bool show_progress=false)
 {
-	return informative_searcher<state_t, score_t>(state_t{s0}, children, nullptr, heuristic, show_progress);
+	return ::informative_searcher<state_t, score_t>(std::move(s0), successors, is_solution, delta, nullptr, show_progress);
+}
+
+//export
+template<typename state_t, typename score_t>
+auto informative_searcher(const std::unique_ptr<state_t> &s0, std::vector<std::unique_ptr<state_t>> (state_t::*successors)() const, bool (state_t::*is_solution)() const, score_t (state_t::*delta)(const std::unique_ptr<state_t>&) const, bool show_progress=false)
+{
+	return ::informative_searcher<state_t, score_t>(std::make_unique<state_t>(*s0), successors, is_solution, delta, nullptr, show_progress);
+}
+
+/*
+ * Best First Search
+ */
+//export
+template<typename state_t, typename score_t>
+auto informative_searcher(state_t &&s0, std::vector<state_t>(state_t::*successors)() const, bool (state_t::*is_solution)() const, score_t (state_t::*heuristic)() const, bool show_progress=false)
+{
+	return ::informative_searcher<state_t, score_t>(std::move(s0), successors, is_solution, nullptr, heuristic, show_progress);
+}
+
+//export
+template<typename state_t, typename score_t>
+auto informative_searcher(const state_t &s0, std::vector<state_t> (state_t::*successors)() const, bool (state_t::*is_solution)() const, score_t (state_t::*heuristic)() const, bool show_progress=false)
+{
+	return ::informative_searcher<state_t, score_t>(state_t{s0}, successors, is_solution, nullptr, heuristic, show_progress);
+}
+
+//export
+template<typename state_t, typename score_t>
+auto informative_searcher(std::unique_ptr<state_t> &&s0, std::vector<std::unique_ptr<state_t>> (state_t::*successors)() const, bool (state_t::*is_solution)() const, score_t (state_t::*heuristic)() const, bool show_progress=false)
+{
+	return ::informative_searcher<state_t, score_t>(std::move(s0), successors, is_solution, nullptr, heuristic, show_progress);
+}
+
+//export
+template<typename state_t, typename score_t>
+auto informative_searcher(const std::unique_ptr<state_t> &s0, std::vector<std::unique_ptr<state_t>> (state_t::*successors)() const, bool (state_t::*is_solution)() const, score_t (state_t::*heuristic)() const, bool show_progress=false)
+{
+	return ::informative_searcher<state_t, score_t>(std::make_unique<state_t>(*s0), successors, is_solution, nullptr, heuristic, show_progress);
 }
 
 //export
 template<typename state_t, typename score_t, template<typename> class Delta, template<typename> class Heuristic>
-class graph_searcher
+class [[deprecated("Use informative_searcher instead")]] graph_searcher
 {
 	static constexpr Delta<score_t> delta {};
 	static constexpr Heuristic<score_t> heuristic {};
@@ -538,19 +682,19 @@ public:
 		thr.join();
 	}
 
-	std::string get_summary() const
+	[[nodiscard]] std::string get_summary() const
 	{
 		std::ostringstream str;
 
 		str << "elapsed time: " << parse_time(elapsed_time) << std::endl;
 		str << "#visited    : " << closed.size() << std::endl;
 		str << "#open       : " << open.size() << std::endl;
-		str << "nodes/second: " << (closed.size() + open.size())*1000/std::max<size_t>(elapsed_time.count(),1) << std::endl;
+		str << "nodes/second: " << (closed.size() + open.size())*1000ull/std::max<size_t>(elapsed_time.count(),1) << std::endl;
 
 		return str.str();
 	}
 
-	size_t get_number_of_solutions() const { return solutions.size(); }
+	[[nodiscard]] size_t get_number_of_solutions() const { return solutions.size(); }
 
 	std::pair<typename std::unordered_set<state_t>::const_iterator, score_t> get_solution(size_t idx)
 	{
@@ -577,7 +721,7 @@ private:
 	{
 		while (s.running)
 		{
-			out << parse_time(std::chrono::duration_cast<std::chrono::seconds>(std::chrono::steady_clock::now() - s.start_time)) << " #closed = " << s.closed.size() << ", #open = " << s.open.size() << "                \r";
+			out << parse_time(std::chrono::duration_cast<std::chrono::seconds>(std::chrono::steady_clock::now() - s.start_time)) << " #closed = " << s.closed.size() << ", #open = " << s.open.size() << "				\r";
 			out.flush();
 			std::this_thread::sleep_for(std::chrono::seconds{1});
 		}
@@ -593,9 +737,10 @@ private:
 	std::chrono::steady_clock::time_point start_time, stop_time;
 };
 
-/*
- * rzeczy dotyczące przeszukiwania drzew gier
- */
+//
+// rzeczy dotyczące przeszukiwania drzew gier
+//
+
 //export
 enum class node_status
 {
@@ -611,10 +756,7 @@ enum class side_to_move
 //export
 constexpr side_to_move operator!(side_to_move stm)
 {
-	if (stm == side_to_move::max_player)
-		return side_to_move::min_player;
-	else
-		return side_to_move::max_player;
+	return (stm == side_to_move::max_player ? side_to_move::min_player : side_to_move::max_player);
 }
 
 //export
@@ -623,175 +765,158 @@ struct status_test
 {
 	node_status operator()(const state_t&) const
 	{
-		throw std::runtime_error("Unimplemented!");
 		return node_status::unresolved;
 	}
 };
 
+class timeout final : public std::exception
+{
+public:
+	[[nodiscard]] const char *what() const noexcept override { return "Run out of time!"; }
+};
+
 //export
-template<typename state_t>
+template<typename state_t, typename move_t>
 class game_state
 {
 public:
-	game_state(side_to_move stm) : stm{ stm }
+	using move_type = move_t;
+	explicit game_state(side_to_move stm) : stm{ stm }
 	{
 	}
 
-	side_to_move get_stm() const { return stm; }
+	[[nodiscard]] side_to_move get_stm() const { return stm; }
+
+	move_t get_move() const
+	{
+//		return static_cast<const state_t*>(this)->get_move();
+		return m_move;
+	}
+
+	template<typename T>
+	T no_heuristic() const { return static_cast<T>(0); }
+
+	void set_move(const move_t &move)
+	{
+		m_move = move;
+	}
 protected:
 	side_to_move stm;
+	move_t m_move;
 };
 
-//template<typename T>
-//concept is_unique_ptr = requires(const T& a) {
-//	typename T::pointer;
-//	typename T::element_type;
-//	typename T::deleter_type;
-//	a.get();
-//	a.operator->();
-//};
-
-//template<side_to_move turn, typename score_t>
-//inline constexpr score_t select_better(score_t a, score_t b)
-//{
-//	if constexpr (turn == side_to_move::max_player)
-//		return std::max(a, b);
-//	else
-//		return std::min(a, b);
-//}
-
-//enum class score_type
-//{
-//	exact, lower_bound, upper_bound
-//};
-
-//template<typename score_t>
-//struct tt_entry
-//{
-//	score_t score;
-//	score_type s_type;
-//	unsigned depth;
-//};
-
-//template<typename state_t, typename score_t>
-//class fake_tt_interface
-//{
-//public:
-//	std::optional<std::ref<tt_entry<score_t>>> probe(const state_t&)
-//	{
-//		return {};
-//	}
-
-//	void put(const state_t&, const tt_entry&)
-//	{
-//	}
-
-//	void clear_tt()
-//	{
-//	}
-//};
-
-//template<typename state_t, typename score_t>
-//class tt_interface : fake_tt_interface<state_t, score_t>
-//{
-//public:
-//	std::optional<tt_entry> probe(const state_t& s)
-//	{
-//		auto it = tt.find(s);
-//		if (it != tt.end())
-//			return it->second;
-//		return {};
-//	}
-
-//	void put(const state_t &s, const tt_entry &e)
-//	{
-//		//
-//	}
-
-//	void clear_tt()
-//	{
-//		tt.clear();
-//	}
-
-//private:
-//	mutable std::unordered_map<state_t, tt_entry> tt;
-//};
+enum class transposition_table_type
+{
+	no_tt, std_unordered_map, fixed
+};
 
 //export
-template<typename state_t, typename score_t, template<typename> class Heuristic, bool use_tt=false>
-class alpha_beta_searcher //: std::conditional_t<use_tt, tt_interface, fake_tt_interface>
+template<typename state_t, typename score_t=int, transposition_table_type tt_type=transposition_table_type::no_tt>
+class alpha_beta_searcher
 {
-//	static_assert(std::derived_from<state_t, game_state<state_t>>);
-	static_assert(std::numeric_limits<score_t>::min() < 0);
-	static constexpr Heuristic<score_t> heuristic {};
+	// static_assert(std::derived_from<state_t, game_state<state_t>>);
+	// static_assert(std::numeric_limits<score_t>::lowest() < 0);
+	static_assert(std::numeric_limits<score_t>::lowest() <= -std::numeric_limits<score_t>::max());
+	// static_assert(use_tt == false);
 	static constexpr status_test<state_t> is_terminal {};
 
+	score_t (state_t::*heuristic)() const;
+	std::vector<state_t>(state_t::*successors)() const;
+
+	std::chrono::steady_clock::time_point start_time;
+	std::chrono::nanoseconds search_time_limit;
+	std::chrono::steady_clock::duration elapsed_time;
+
+	using move_type = state_t::move_type;
+
 public:
-	alpha_beta_searcher(unsigned max_depth) : max_depth{ max_depth }, visited{ 0 }, scores{}, best_idx{ 0 }
+	template<typename duration_type=std::chrono::nanoseconds>
+	alpha_beta_searcher(unsigned max_depth, std::vector<state_t> (state_t::*successors)() const, score_t (state_t::*heuristic)() const=&state_t::template no_heuristic<score_t>, duration_type search_time_limit=std::chrono::nanoseconds::max()) : heuristic{heuristic}, successors{successors}, search_time_limit{std::chrono::duration_cast<std::chrono::nanoseconds>(search_time_limit)}, elapsed_time {0}, m_max_depth{ max_depth }, m_visited{ 0 }, m_pv_array(m_max_depth * (m_max_depth + 1) / 2), m_pv_length(m_max_depth + 1, 0), m_tt_hits{0}, m_tt_miss{0}
 	{
+		if (heuristic == nullptr)
+			heuristic = &state_t::template no_heuristic<score_t>;
+		if constexpr (tt_type == transposition_table_type::fixed)
+			m_tt_fixed.resize(100'000'000);
 	}
 
-	template<typename Successors>
-	void perform_search(Successors generator, const /*game_state<*/state_t/*>*/ &s)
+	void perform_search(const state_t &s, bool use_iterative_deepening=true)
 	{
-		side_to_move stm;
-		if constexpr (is_unique_ptr<state_t>::value)
+		m_visited = 0;
+		m_tt_hits = m_tt_miss = 0;
+		m_best_move.second = (s.get_stm() == side_to_move::max_player ? std::numeric_limits<score_t>::lowest() : std::numeric_limits<score_t>::max());
+		start_time = std::chrono::steady_clock::now();
+
+		if (use_iterative_deepening)
 		{
-			static_assert(std::derived_from<typename state_t::element_type, game_state<typename state_t::element_type>>);
-			stm = s->get_stm();
+			std::vector<move_type> prev_pv_stack, old_pv;
+			prev_pv_stack.reserve(m_max_depth);
+			try
+			{
+				for (unsigned depth = 1; depth <= m_max_depth; depth++)
+				{
+					clear_tt();
+
+					auto v = alpha_beta_search(s, std::numeric_limits<score_t>::lowest(), std::numeric_limits<score_t>::max(), depth, m_pv_array.begin(), m_pv_length.begin(), prev_pv_stack);
+					m_best_move = {m_pv_array[0], v};
+
+					prev_pv_stack.resize(m_pv_length[0]);
+					std::copy_n(m_pv_array.begin(), m_pv_length[0], prev_pv_stack.rbegin());
+					old_pv.resize(m_pv_length[0]);
+					std::copy_n(m_pv_array.begin(), m_pv_length[0], old_pv.begin());
+
+					if (m_pv_length[0] < depth)
+						break;
+				}
+			}
+			catch (timeout&)
+			{
+				m_pv_length[0] = old_pv.size();
+				std::ranges::copy(old_pv, m_pv_array.begin());
+			}
 		}
 		else
-		{
-			static_assert(std::derived_from<state_t, game_state<state_t>>);
-			stm = s.get_stm();
-		}
+			alpha_beta_search(s, std::numeric_limits<score_t>::lowest(), std::numeric_limits<score_t>::max(), m_max_depth);
 
-		visited = 0;
-		scores.clear();
-		best_idx = 0;
-
-		if (/*s.get_*/stm/*()*/ == side_to_move::max_player)
-			alpha_beta_search<side_to_move::max_player>(generator, s, std::numeric_limits<score_t>::min(), std::numeric_limits<score_t>::max(), max_depth);
-//			alpha_beta_max(generator, /*static_cast<const state_t&>(*/s/*)*/, std::numeric_limits<score_t>::min(), std::numeric_limits<score_t>::max(), max_depth);
-		else
-			alpha_beta_search<side_to_move::min_player>(generator, s, std::numeric_limits<score_t>::min(), std::numeric_limits<score_t>::max(), max_depth);
-//			alpha_beta_min(generator, /*static_cast<const state_t&>(*/s/*)*/, std::numeric_limits<score_t>::min(), std::numeric_limits<score_t>::max(), max_depth);
+		elapsed_time = std::chrono::steady_clock::now() - start_time;
 	}
 
-//	template<typename Successors>
-//	typename std::enable_if_t<is_unique_ptr<std::remove_cvref_t<state_t>>>
-//	/*void*/ perform_search(Successors generator, const state_t &s)
-//	{
-//		visited = 0;
-//		scores.clear();
-//		best_idx = 0;
+	[[nodiscard]] std::string get_summary() const
+	{
+		double total = std::max<size_t>(m_tt_hits + m_tt_miss, 1);
+		return std::format("#Visited     : {}\nElapsed time : {}\nNodes per sec: {:.0f}\nTT hits (%)  : {:5.2f}\nTT miss (%)  : {:5.2f}",
+			m_visited,
+			parse_time(elapsed_time),
+			m_visited*1e6/std::chrono::duration_cast<std::chrono::microseconds>(elapsed_time).count(),
+			m_tt_hits*1e2/total,
+			m_tt_miss*1e2/total
+		);
+	}
 
-//		if (s->get_stm() == side_to_move::max_player)
-//			alpha_beta_max(generator, s, std::numeric_limits<score_t>::min(), std::numeric_limits<score_t>::max(), 0);
-//		else
-//			alpha_beta_min(generator, s, std::numeric_limits<score_t>::min(), std::numeric_limits<score_t>::max(), 0);
-//	}
+	std::vector<move_type> get_pv() const { return std::vector<move_type>(m_pv_array.begin(), m_pv_array.begin() + m_pv_length[0]); }
 
-//	template<typename Successors, typename T=std::enable_if_t<is_unique_ptr<state_t>>>
-//	void perform_search(Successors generator, const game_state<typename state_t::element_type> &s)
-//	{
-//		visited = 0;
-//		scores.clear();
-//		best_idx = 0;
+	void clear_tt()
+	{
+		if constexpr (tt_type == transposition_table_type::std_unordered_map)
+			m_tt.clear();
 
-//		if (s.get_stm() == side_to_move::max_player)
-//			alpha_beta_max(generator, static_cast<const state_t&>(s), std::numeric_limits<score_t>::min(), std::numeric_limits<score_t>::max(), 0);
-////			alpha_beta_max(generator, s, std::numeric_limits<score_t>::min(), std::numeric_limits<score_t>::max(), 0);
-//		else
-//			alpha_beta_min(generator, static_cast<const state_t&>(s), std::numeric_limits<score_t>::min(), std::numeric_limits<score_t>::max(), 0);
-////			alpha_beta_min(generator, s, std::numeric_limits<score_t>::min(), std::numeric_limits<score_t>::max(), 0);
-//	}
+		if constexpr (tt_type == transposition_table_type::fixed)
+			std::memset(m_tt_fixed.data(), sizeof(m_tt_fixed[0]), m_tt_fixed.size());
+	}
 
-	unsigned get_visited() const { return visited; }
+	void set_tt_size([[maybe_unused]] size_t new_size)
+	{
+		if constexpr (tt_type == transposition_table_type::fixed)
+		{
+			if (new_size == 0)
+				throw std::invalid_argument("New size must be positive!");
 
-	auto& get_scores() const { return scores; }
+			m_tt_fixed.resize(new_size);
+		}
+	}
 
-	auto& get_best() const { return scores[best_idx]; }
+	[[nodiscard]] unsigned get_visited() const { return m_visited; }
+
+	auto get_best_move() const { return m_best_move; }
 
 	/*template<typename Successors, typename SolutionPredicate>
 	alpha_beta_searcher(state_t&& s0, Successors generator, SolutionPredicate is_solution)
@@ -837,8 +962,8 @@ public:
 		std::ostringstream str;
 
 		str << "elapsed time: " << parse_time(elapsed_time) << std::endl;
-		str << "#visited    : " << closed.size() << std::endl;
-		str << "#open       : " << open.size() << std::endl;
+		str << "#visited	: " << closed.size() << std::endl;
+		str << "#open	   : " << open.size() << std::endl;
 
 		return str.str();
 	}
@@ -898,34 +1023,33 @@ private:
 //	if g >= beta then n.lowerbound := g; store n.lowerbound;
 //	return g;
 
-	template<side_to_move turn, typename Successors>
-	score_t alpha_beta_search(Successors generator, const state_t &s, score_t alpha, score_t beta, unsigned depth) const
+	score_t alpha_beta_search(const state_t &s, score_t alpha, score_t beta, unsigned depth)
 	{
-		++visited;
+		++m_visited;
 
-		if constexpr (use_tt)
-			if (auto it = tt.find(s); it != tt.end() && depth < it->second.depth)
+		if (auto entry = retrieve(s); entry != nullptr && depth >= entry->depth)
+		{
+			switch (entry->s_type)
 			{
-				switch (it->second.s_type)
-				{
-				case score_type::lower_bound:
-					if (it->second.score >= beta)
-						return it->second.score;
-					alpha = std::max(alpha, it->second.score);
-					break;
-				case score_type::upper_bound:
-					if (alpha >= it->second.score)
-						return it->second.score;
-					beta = std::min(beta, it->second.score);
-					break;
-				case score_type::exact:
-					if (alpha >= it->second.score || it->second.score >= beta)
-						return it->second.score;
-					alpha = std::max(alpha, it->second.score);
-					beta = std::min(beta, it->second.score);
-					break;
-				}
+			case score_type::lower_bound:
+				if (entry->score >= beta)
+					return entry->score;
+				alpha = std::max(alpha, entry->score);
+				break;
+			case score_type::upper_bound:
+				if (alpha >= entry->score)
+					return entry->score;
+				beta = std::min(beta, entry->score);
+				break;
+			case score_type::exact:
+				if (alpha >= entry->score || entry->score >= beta)
+					return entry->score;
+				alpha = std::max(alpha, entry->score);
+				beta = std::min(beta, entry->score);
+				break;
 			}
+		}
+
 		score_t g{};
 		if (auto st = is_terminal(s); st != node_status::unresolved)
 			switch (st)
@@ -933,65 +1057,202 @@ private:
 			default:
 			case node_status::draw: g = 0; break;
 			case node_status::max_won: g = std::numeric_limits<score_t>::max(); break;
-			case node_status::min_won: g = std::numeric_limits<score_t>::min(); break;
+			case node_status::min_won: g = std::numeric_limits<score_t>::lowest(); break;
 			}
 		else if (depth == 0)
-			g = heuristic(s);
+			g = std::invoke(heuristic, s);
+		else if (s.get_stm() == side_to_move::max_player)
+		{
+			score_t a = alpha;
+			g = std::numeric_limits<score_t>::lowest();
+
+			for (auto &t : std::invoke(successors, s))
+			{
+				auto v = alpha_beta_search(t, a, beta, depth - 1);
+
+				if (depth == m_max_depth && v > m_best_move.second)
+					m_best_move = {t.get_move(), v};
+
+				g = std::max(g, v);
+				a = std::max(a, g);
+				if (g >= beta) break;
+			}
+		}
 		else
 		{
-			score_t bnd;
-			if constexpr (turn == side_to_move::max_player)
+			score_t b = beta;
+			g = std::numeric_limits<score_t>::max();
+
+			for (auto &t : std::invoke(successors, s))
 			{
-				g = std::numeric_limits<score_t>::min();
-				bnd = alpha;
-			}
-			else
-			{
-				g = std::numeric_limits<score_t>::max();
-				bnd = beta;
-			}
-			for (auto &t : generator(s))
-			{
-				if constexpr (turn == side_to_move::max_player)
-				{
-					auto v = alpha_beta_search<side_to_move::min_player>(generator, t, bnd, beta, depth - 1);
-					if (depth == max_depth)
-					{
-						scores.push_back(std::make_pair(std::move(t), v));
-						if (scores[best_idx].second	< v)
-							best_idx = scores.size() - 1;
-					}
-					g = std::max(g, v);
-					bnd = std::max(bnd, g);
-					if (g >= beta) break;
-				}
-				else
-				{
-					auto v = alpha_beta_search<side_to_move::max_player>(generator, t, alpha, bnd, depth - 1);
-					if (depth == max_depth)
-					{
-						scores.push_back(std::make_pair(std::move(t), v));
-						if (scores[best_idx].second	> v)
-							best_idx = scores.size() - 1;
-					}
-					g = std::min(g, v);
-					bnd = std::min(bnd, g);
-					if (g <= alpha) break;
-				}
+				auto v = alpha_beta_search(t, alpha, b, depth - 1);
+
+				if (depth == m_max_depth && v < m_best_move.second)
+					m_best_move = {t.get_move(), v};
+
+				g = std::min(g, v);
+				b = std::min(b, g);
+				if (g <= alpha) break;
 			}
 		}
 
-		if constexpr (use_tt)
-		{
-			if (g <= alpha)
-				tt.emplace(std::pair<state_t, tt_entry>{std::move(s), {g, score_type::upper_bound, depth}});
-			else if (beta <= g)
-				tt.emplace(std::pair<state_t, tt_entry>{std::move(s), {g, score_type::lower_bound, depth}});
-			else
-				tt.emplace(std::pair<state_t, tt_entry>{std::move(s), {g, score_type::exact, depth}});
-		}
+		if (g <= alpha)
+			store(s, {g, score_type::upper_bound, depth});
+		else if (beta <= g)
+			store(s, {g, score_type::lower_bound, depth});
+		else
+			store(s, {g, score_type::exact, depth});
 
 		return g;
+	}
+
+	score_t alpha_beta_search(const state_t &s, score_t alpha, score_t beta, unsigned depth, std::vector<move_type>::iterator pv, std::vector<size_t>::iterator pv_length, std::vector<move_type> &prev_pv_stack/*, unsigned parent_id*/)
+	{
+		// static unsigned tab = 0;
+		static move_type moves_stack[128], *moves_ptr = moves_stack;
+		static uint32_t stack_len = 0;
+
+		struct inc_dec
+		{	// wyjścia w różnych punktach, po to opakowanie
+			~inc_dec()
+			{
+				// --cnt;
+				--moves_ptr;
+			}
+			explicit inc_dec(/*unsigned &cnt,*/ move_type *&moves_ptr, move_type m) : /*cnt{cnt},*/ moves_ptr(moves_ptr)
+			{
+				*moves_ptr++ = m;
+				// ++cnt;
+			}
+			// unsigned &cnt;
+			move_type *&moves_ptr;
+		} _{/*tab,*/ moves_ptr, s.get_move()};
+		stack_len = moves_ptr - moves_stack;
+
+		// std::cout << '\n' << std::string(12*(tab-1), ' ') << std::format("{} (α={}, β={}): ", (s.get_stm() == side_to_move::max_player ? "MAX" : "MIN"), alpha, beta) << s.get_move();
+
+		*pv_length = 0;
+		++m_visited;
+
+		if (std::chrono::steady_clock::now() - start_time >= search_time_limit)
+			throw timeout();
+
+		if (prev_pv_stack.empty())
+			if (auto entry = retrieve(s); entry != nullptr && depth >= entry->depth)
+			{
+				switch (entry->s_type)
+				{
+				case score_type::lower_bound:
+					if (entry->score >= beta)
+						return entry->score;
+					alpha = std::max(alpha, entry->score);
+					break;
+				case score_type::upper_bound:
+					if (alpha >= entry->score)
+						return entry->score;
+					beta = std::min(beta, entry->score);
+					break;
+				case score_type::exact:
+					if (alpha >= entry->score || entry->score >= beta)
+						return entry->score;
+					alpha = std::max(alpha, entry->score);
+					beta = std::min(beta, entry->score);
+					break;
+				}
+			}
+
+		switch (is_terminal(s))
+		{
+		default: break;
+		case node_status::draw: return 0;
+		case node_status::max_won: return std::numeric_limits<score_t>::max();
+		case node_status::min_won: return std::numeric_limits<score_t>::lowest();
+		}
+
+		if (depth == 0)
+		{
+			auto score = std::invoke(heuristic, s);
+			store(s, {score, score_type::exact, depth});
+			return score;
+		}
+
+		auto children = std::invoke(successors, s);
+		if (!prev_pv_stack.empty())
+		{
+			const auto &move = prev_pv_stack.back();
+			auto it = std::find_if(children.begin(), children.end(),[&move](const state_t &t){return t.get_move() == move; });
+			if (it == children.end())
+				throw std::runtime_error(std::format("Something went wrong: missing move '{}'", move));
+			std::swap(*children.begin(), *it);
+			prev_pv_stack.pop_back();
+		}
+
+		if (s.get_stm() == side_to_move::max_player)
+		{
+			for (auto &t : children)
+			{
+				auto v = alpha_beta_search(t, alpha, beta, depth - 1, pv + depth, pv_length + 1, prev_pv_stack/*, node_id*/);
+
+				if (v >= beta)
+				{
+					if (depth == stack_len && *pv_length == 0)
+					{	// max ma zwycięską sekwencję
+						std::copy_n(moves_stack + 1, stack_len - 1, pv);
+						*pv_length = stack_len - 1;
+					}
+
+					// std::cout << std::format(" CUT {}: {} <{}>", (s.get_stm() == side_to_move::max_player ? "MAX" : "MIN"), s.get_move(), v);
+					store(s, {v, score_type::lower_bound, depth});
+					return v;
+				}
+
+				if (v > alpha)
+				{
+					*pv = t.get_move();
+					// std::copy(pv + depth, pv + 2*depth - 1, pv + 1);
+					std::copy(pv + depth, pv + depth + pv_length[1], pv + 1);
+					*pv_length = pv_length[1] + 1;
+					alpha = v;
+				}
+			}
+			// std::cout << std::format(" EXIT {} (α={}, β={}): {} [{}]", (s.get_stm() == side_to_move::max_player ? "MAX" : "MIN"), alpha, beta, s.get_move(), alpha);
+
+			store(s, {alpha, score_type::exact, depth});
+			return alpha;
+		}
+		else
+		{
+			for (auto &t : children)
+			{
+				auto v = alpha_beta_search(t, alpha, beta, depth - 1, pv + depth, pv_length + 1, prev_pv_stack/*, node_id*/);
+
+				if (v <= alpha)
+				{
+					if (depth == stack_len && *pv_length == 0)
+					{	// min ma zwycięską sekwencję
+						std::copy_n(moves_stack + 1, stack_len - 1, pv);
+						*pv_length = stack_len - 1;
+					}
+
+					// std::cout << std::format(" CUT {}: {} <{}>", (s.get_stm() == side_to_move::max_player ? "MAX" : "MIN"), s.get_move(), v);
+					store(s, {v, score_type::upper_bound, depth});
+					return v;
+				}
+
+				if (v < beta)
+				{
+					*pv = t.get_move();
+					// std::copy(pv + depth, pv + 2*depth - 1, pv + 1);
+					std::copy(pv + depth, pv + depth + pv_length[1], pv + 1);
+					*pv_length = pv_length[1] + 1;
+					beta = v;
+				}
+			}
+			// (std::cout << std::format(" EXIT {} (α={}, β={}): {} [{}]", (s.get_stm() == side_to_move::max_player ? "MAX" : "MIN"), alpha, beta, s.get_move(), beta)).flush();
+
+			store(s, {beta, score_type::exact, depth});
+			return beta;
+		}
 	}
 
 	/* https://www.chessprogramming.org/Transposition_Table
@@ -1000,15 +1261,15 @@ private:
 	 * * The entry type is LOWERBOUND and greater than or equal to beta
 	 * * The entry type is UPPERBOUND and less than alpha
 	 */
-	template<typename Successors>
+	/*template<typename Successors>
 	score_t alpha_beta_max(Successors generator, const state_t &s, score_t alpha, score_t beta, unsigned depth) const
 	{
-		visited++;
+		m_visited++;
 
 		if constexpr (use_tt)
 		{
-			auto it = tt.find(s);
-			if (it != tt.end() && it->second.depth >= depth)
+			auto it = m_tt.find(s);
+			if (it != m_tt.end() && it->second.depth >= depth)
 			{
 #ifndef NDEBUG
 				if (s.get_stm() != side_to_move::max_player)
@@ -1036,14 +1297,14 @@ private:
 		switch (st)
 		{
 		case node_status::unresolved: break;
-		case node_status::draw      : score = 0; break;
+		case node_status::draw	  : score = 0; break;
 		case node_status::max_won   : score = std::numeric_limits<score_t>::max(); break;
-		case node_status::min_won   : score = std::numeric_limits<score_t>::min(); break;
+		case node_status::min_won   : score = std::numeric_limits<score_t>::lowest(); break;
 		}
 		if (score)
 		{
 			if constexpr (use_tt)
-				if (auto [it, ins] = tt.emplace(std::pair<state_t, tt_entry>{std::move(s), {score.value(), score_type::exact, depth}}); !ins)
+				if (auto [it, ins] = m_tt.emplace(std::pair<state_t, tt_entry>{std::move(s), {score.value(), score_type::exact, depth}}); !ins)
 				{
 					std::cout << it->first.to_string() << std::endl << s.to_string() << std::endl;
 					throw std::runtime_error("Entry already in TT!");
@@ -1070,11 +1331,11 @@ private:
 		{
 			auto v = alpha_beta_min(generator, t, alpha, beta, depth - 1);
 
-			if (depth == max_depth)
+			if (depth == m_max_depth)
 			{
-				scores.emplace_back(std::move(t), v);
-				if (scores[best_idx].second	< v)
-					best_idx = scores.size() - 1;
+				m_scores.emplace_back(std::move(t), v);
+				if (m_scores[m_best_idx].second	< v)
+					m_best_idx = m_scores.size() - 1;
 			}
 
 			alpha = std::max(alpha, v);
@@ -1098,7 +1359,7 @@ private:
 	template<typename Successors>
 	score_t alpha_beta_min(Successors generator, const state_t &s, score_t alpha, score_t beta, unsigned depth) const
 	{
-		visited++;
+		m_visited++;
 
 //		auto st = is_terminal(s);
 //		switch (st)
@@ -1114,8 +1375,8 @@ private:
 
 		if constexpr (use_tt)
 		{
-			auto it = tt.find(s);
-			if (it != tt.end() && it->second.depth <= depth)
+			auto it = m_tt.find(s);
+			if (it != m_tt.end() && it->second.depth <= depth)
 			{
 #ifndef NDEBUG
 				if (s.get_stm() != side_to_move::min_player)
@@ -1143,14 +1404,14 @@ private:
 		switch (st)
 		{
 		case node_status::unresolved: break;
-		case node_status::draw      : score = 0; break;
+		case node_status::draw	  : score = 0; break;
 		case node_status::max_won   : score = std::numeric_limits<score_t>::max(); break;
-		case node_status::min_won   : score = std::numeric_limits<score_t>::min(); break;
+		case node_status::min_won   : score = std::numeric_limits<score_t>::lowest(); break;
 		}
 		if (score)
 		{
 			if constexpr (use_tt)
-				if (auto [it, ins] = tt.emplace(std::pair<state_t, tt_entry>{std::move(s), {score.value(), score_type::exact, depth}}); !ins)
+				if (auto [it, ins] = m_tt.emplace(std::pair<state_t, tt_entry>{std::move(s), {score.value(), score_type::exact, depth}}); !ins)
 				{
 					std::cout << it->first.to_string() << std::endl << s.to_string() << std::endl;
 					throw std::runtime_error("Entry already in TT!");
@@ -1177,11 +1438,11 @@ private:
 		{
 			auto v = alpha_beta_max(generator, t, alpha, beta, depth - 1);
 
-			if (depth == max_depth)
+			if (depth == m_max_depth)
 			{
-				scores.emplace_back(std::move(t), v);
-				if (scores[best_idx].second > v)
-					best_idx = scores.size() - 1;
+				m_scores.emplace_back(std::move(t), v);
+				if (m_scores[m_best_idx].second > v)
+					m_best_idx = m_scores.size() - 1;
 			}
 
 			beta = std::min(beta, v);
@@ -1199,44 +1460,71 @@ private:
 		}
 
 		return beta;
-	}
-
-	/*static void progress(const graph_searcher *s, std::ostream &out)
-	{
-		while (s->running)
-		{
-			out << parse_time(std::chrono::duration_cast<std::chrono::seconds>(std::chrono::steady_clock::now() - s->start_time)) << " #closed = " << s->closed.size() << ", #open = " << s->open.size() << "                \r";
-			out.flush();
-			std::this_thread::sleep_for(std::chrono::seconds{1});
-		}
-		out << std::endl;
 	}*/
 
-	unsigned max_depth;
-	mutable unsigned visited;
-	mutable std::vector<std::pair<state_t, score_t>> scores;
-	mutable size_t best_idx;
+	unsigned m_max_depth;
+	unsigned m_visited;
+	std::pair<move_type, score_t> m_best_move;
+	std::vector<typename state_t::move_type> m_pv_array;
+	std::vector<size_t> m_pv_length;
 
-	enum class score_type
-	{
-		exact, lower_bound, upper_bound
-	};
+	enum class score_type { exact, lower_bound, upper_bound };
 	struct tt_entry
 	{
 		score_t score;
 		score_type s_type;
 		unsigned depth;
 	};
-	mutable std::unordered_map<state_t, tt_entry> tt;
-//	using tt_type = std::conditional_t<use_tt, std::unordered_map<state_t, tt_entry>, void*>;
-//	mutable tt_type tt;
 
-//	std::unordered_set<state_t> closed;
-//	priority_queue<state_t, score_t, typename std::unordered_set<state_t>::const_iterator> open;
-//	std::unordered_map<typename std::unordered_set<state_t>::const_iterator, typename std::unordered_set<state_t>::const_iterator, hash_iterator<state_t>, equal_to_iterator<state_t>> parent_map;
-//	std::vector<std::pair<typename std::unordered_set<state_t>::const_iterator, score_t>> solutions;
-//	bool running;
-//	std::chrono::milliseconds elapsed_time;
-//	std::chrono::steady_clock::time_point start_time, stop_time;
+	tt_entry* retrieve(const state_t &s)
+	{
+		tt_entry *res = nullptr;
+		if constexpr (tt_type == transposition_table_type::std_unordered_map)
+		{
+			auto it = m_tt.find(s);
+			if (it != m_tt.end())
+				res = &it->second;
+		}
+
+		if constexpr (tt_type == transposition_table_type::fixed)
+		{
+			size_t hashcode = std::hash<state_t>{}(s);
+			auto &entry = m_tt_fixed[hashcode % m_tt_fixed.size()];
+			if (entry.first == hashcode)
+				res = &entry.second;
+		}
+
+		++(res ? m_tt_hits : m_tt_miss);
+		return nullptr;
+	}
+
+	void store(const state_t &s, const tt_entry &entry)
+	{
+		if constexpr (tt_type == transposition_table_type::std_unordered_map)
+			m_tt[s] = entry;
+
+		if constexpr (tt_type == transposition_table_type::fixed)
+		{
+			size_t hashcode = std::hash<state_t>{}(s);
+			auto &item = m_tt_fixed[hashcode % m_tt_fixed.size()];
+			item.first = hashcode;
+			item.second = entry;
+		}
+	}
+	std::unordered_map<state_t, tt_entry> m_tt;
+	std::vector<std::pair<size_t, tt_entry>> m_tt_fixed;
+	size_t m_tt_hits, m_tt_miss;
 };
+
+template<typename state_t, typename score_t, typename duration_type=std::chrono::nanoseconds>
+constexpr auto search_with_tt_fixed(unsigned max_depth, score_t (state_t::*heuristic)() const, std::vector<state_t> (state_t::*successors)() const, duration_type search_time_limit=std::chrono::nanoseconds::max())
+{
+	return alpha_beta_searcher<state_t, score_t, transposition_table_type::fixed>(max_depth, heuristic, successors, search_time_limit);
+}
+
+template<typename state_t, typename score_t, typename duration_type=std::chrono::nanoseconds>
+constexpr auto search_with_tt_std(unsigned max_depth, score_t (state_t::*heuristic)() const, std::vector<state_t> (state_t::*successors)() const, duration_type search_time_limit=std::chrono::nanoseconds::max())
+{
+	return alpha_beta_searcher<state_t, score_t, transposition_table_type::std_unordered_map>(max_depth, heuristic, successors, search_time_limit);
+}
 #endif
