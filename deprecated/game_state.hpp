@@ -10,6 +10,8 @@ template<typename Move>
 class game_state
 {
 public:
+	typedef Move move_type;
+
 	game_state() = default;
 
 	virtual ~game_state() = default;
@@ -18,7 +20,7 @@ public:
 	 * @brief Method creates copy of the current object.
 	 * @return Unique pointer to the copied object.
 	 */
-	virtual std::unique_ptr<game_state> clone() const = 0;
+	virtual std::unique_ptr<game_state<Move>> clone() const = 0;
 
 	/**
 	 * @brief Method generates possible moves of current state.
@@ -27,11 +29,22 @@ public:
 	virtual std::vector<Move> generate_moves() const = 0;
 
 	/**
+	 * @brief Method generates only those moves which lead to quiet positions,
+	 * where heuristic grade doesn't change radically. Used in quiescence
+	 * search to avoid the effect of horizon.
+	 * @return Vector of valid non-quiet moves.
+	 */
+	virtual std::vector<Move> generate_non_quiet_moves() const
+	{
+		return {};
+	}
+
+	/**
 	 * @brief Method creates new state corresponding to the made move.
 	 * @param move - move to make.
 	 * @return New state after move or nullptr if move was invalid.
 	 */
-	virtual std::unique_ptr<game_state> make_move(const Move &move) const = 0;
+	virtual std::unique_ptr<game_state<Move>> make_move(const Move &move) const = 0;
 
 	/**
 	 * @brief Method calculates hash of the current object.
@@ -72,7 +85,7 @@ protected:
 	 * @param s state to compare with.
 	 * @return true when current state is the same as state s, false otherwise.
 	 */
-	virtual bool is_equal(const game_state &s) const = 0;
+	virtual bool is_equal(const game_state<Move> &s) const = 0;
 };
 
 namespace std
