@@ -16,10 +16,6 @@
 #include <cstring>
 using namespace std::literals;
 
-template <typename...> struct is_unique_ptr final : std::false_type {};
-template<class T, typename... Args>
-struct is_unique_ptr<std::unique_ptr<T, Args...>> final : std::true_type {};
-
 template <typename...> struct is_pair final : std::false_type {};
 template<typename T1, typename T2>
 struct is_pair<std::pair<T1, T2>> final : std::true_type {};
@@ -288,7 +284,7 @@ public:
 				  std::unordered_map<typename std::unordered_set<state_t>::const_iterator, typename std::unordered_set<state_t>::const_iterator, hash_iterator<state_t>, equal_to_iterator<state_t>> &&parent_map,
 				  Open &&open,
 				  Solutions &&solutions,
-				  std::chrono::steady_clock::duration elapsed_time) :
+				  const std::chrono::steady_clock::duration elapsed_time) :
 		closed(std::move(closed)),
 		parent_map(std::move(parent_map)),
 		open(std::move(open)),
@@ -640,7 +636,7 @@ class game_state
 {
 public:
 	using move_type = move_t;
-	explicit game_state(side_to_move stm) : stm{ stm }
+	explicit game_state(side_to_move stm, move_t move={}) : stm{ stm }, m_move{ move }
 	{
 	}
 
