@@ -384,7 +384,6 @@ auto informative_searcher(state_t &&s0,
 			std::vector<std::pair<typename std::unordered_set<state_type>::const_iterator, score_t>>> solutions;
 	std::chrono::steady_clock::time_point start_time;
 
-	std::ostream no_output {nullptr};
 	bool running = true;
 
 	auto progress = [&running, &start_time, &closed, &open](std::ostream &out)
@@ -399,7 +398,9 @@ auto informative_searcher(state_t &&s0,
 	};
 
 	start_time = std::chrono::steady_clock::now();
-	auto thr = std::thread(progress, std::ref(show_progress ? std::cout : no_output));
+	std::optional<std::thread> thr;
+	if (show_progress)
+		thr = std::thread(progress, std::ref(std::cout));
 
 	if constexpr (no_g_and_h)
 	{
@@ -476,7 +477,8 @@ auto informative_searcher(state_t &&s0,
 	std::chrono::steady_clock::duration elapsed_time = stop_time - start_time;
 
 	running = false;
-	thr.join();
+	if (thr)
+		thr->join();
 
 	return search_result(std::move(closed), std::move(parent_map), std::move(open), std::move(solutions), elapsed_time);
 }
@@ -498,11 +500,12 @@ public:
 	template<typename Successors>
 	graph_searcher(state_t&& s0, Successors generator, bool show_progress=false)
 	{
-		std::ostream no_output {nullptr};
 		running = true;
 
 		start_time = std::chrono::steady_clock::now();
-		auto thr = std::thread(graph_searcher::progress, std::ref(*this), std::ref(show_progress ? std::cout : no_output));
+		std::optional<std::thread> thr;
+		if (show_progress)
+			thr = std::thread(graph_searcher::progress, std::ref(*this), std::ref(std::cout));
 
 		open.push(std::forward<state_t>(s0), heuristic(s0), closed.end());
 		while (!open.empty())
@@ -532,7 +535,8 @@ public:
 		elapsed_time = std::chrono::duration_cast<std::chrono::milliseconds>(stop_time - start_time);
 
 		running = false;
-		thr.join();
+		if (thr)
+			thr->join();
 	}
 
 	[[nodiscard]] std::string get_summary() const
